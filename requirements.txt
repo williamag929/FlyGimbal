@@ -1,0 +1,24 @@
+# GyroDrone — Python Dependencies
+# Install: pip install -r requirements.txt
+
+# Path planning
+dubins==1.0.1
+
+# MAVLink / ArduPilot communication
+pymavlink==2.4.41
+
+# Numerical computing
+numpy>=1.24.0
+
+# VESC UART communication (Phase 2)
+pyserial>=3.5
+
+# Optional: simulation / visualization
+matplotlib>=3.7.0      # Plot Dubins paths for debugging
+
+# Optional: companion computer telemetry logging
+pandas>=2.0.0          # Log flight data to CSV
+
+# Dev / testing only
+pytest>=7.4.0
+pytest-cov>=4.1.0
