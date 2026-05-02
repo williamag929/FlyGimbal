@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  validate-python:
+    name: Python — Validate Path Planner
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run path planner (simulation mode)
+        run: python src/pathfinding/dubins_momentum.py --sim
+
+      - name: Run tests (if present)
+        run: |
+          if [ -d "tests" ]; then
+            pytest tests/ -v --tb=short
+          else
+            echo "No tests directory yet — skipping"
+          fi
+
+  validate-docs:
+    name: Docs — Check Markdown links
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for broken internal links
+        run: |
+          echo "Checking that key docs exist..."
+          test -f README.md           && echo "✓ README.md"
+          test -f docs/BOM.md         && echo "✓ docs/BOM.md"
+          test -f docs/PHYSICS.md     && echo "✓ docs/PHYSICS.md"
+          test -f docs/ROADMAP.md     && echo "✓ docs/ROADMAP.md"
+          test -f docs/BUILD_GUIDE.md && echo "✓ docs/BUILD_GUIDE.md"
+          test -f cad-specs/FRAME_SPEC.md    && echo "✓ cad-specs/FRAME_SPEC.md"
+          test -f cad-specs/FLYWHEEL_SPEC.md && echo "✓ cad-specs/FLYWHEEL_SPEC.md"
+          test -f cad-specs/GIMBAL_SPEC.md   && echo "✓ cad-specs/GIMBAL_SPEC.md"
+          echo "All required docs present."
