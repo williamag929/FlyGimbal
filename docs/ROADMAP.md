@@ -10,6 +10,75 @@
 
 ---
 
+## Phase 0.5 — Physics Simulation (Complete)
+
+**Goal:** Validate full system dynamics before committing to hardware build.
+
+- [x] 6-DOF rigid-body dynamics (NED frame, ZYX Euler, Euler integration)
+- [x] Flywheel FESS model (RPM integration, bearing friction, regenerative braking)
+- [x] Thrust-vectoring gimbal model (Savox SH-0257MG rate-limited servos)
+- [x] Momentum-aware Dubins path planner (inline, no external dependency)
+- [x] Cascade controller: position → accel → tilt + wrench allocation
+- [x] Gyroscopic feed-forward (cancels flywheel coupling on pitch/roll)
+- [x] 8-panel telemetry dashboard (trajectory, energy, gimbals, attitude, speed)
+
+### Simulation Results — Circuit Mission (20m × 20m, 5 waypoints)
+
+| Metric | Value |
+|---|---|
+| Mission duration | ~20 seconds |
+| Cruise speed | 5.0 m/s (achieved) |
+| Altitude tracking error | ±0.5 m |
+| Flywheel RPM (nominal) | 15,000 RPM (67% charge) |
+| Regen energy recovered | ~17 J per circuit |
+| Turning radius (67% FW charge) | 5.9 m (vs 8.8 m empty) |
+| Max roll during arc turns | < 1° (gyroscopic stabilization active) |
+
+### Run the Simulation
+
+```bash
+python -m venv .venv
+.venv/Scripts/pip install numpy matplotlib
+
+# Default circuit
+.venv/Scripts/python src/simulation/gyrodrone_sim.py
+
+# Other profiles
+.venv/Scripts/python src/simulation/gyrodrone_sim.py --mission figure8
+.venv/Scripts/python src/simulation/gyrodrone_sim.py --mission lawnmower
+.venv/Scripts/python src/simulation/gyrodrone_sim.py --no-regen   # FESS disabled comparison
+.venv/Scripts/python src/simulation/gyrodrone_sim.py --dt 0.005   # high-fidelity
+```
+
+### Key Findings
+
+1. **Gyroscopic feed-forward is mandatory.** Without canceling flywheel angular momentum coupling, pitch maneuvers induce ~10° spurious roll. The `tau_r += L_fw*q` term in the controller eliminates this.
+2. **Wrench allocation decouples throttle from attitude.** Mapping desired torques (Nm) directly to motor speeds prevents altitude throttle spikes from destabilizing attitude.
+3. **Turning radius compression is measurable.** At full flywheel charge (67%→100%): r_min drops from 8.8 m to 4.4 m — a 50% tighter arc at the same bank angle limit.
+4. **Regen is modest but real.** ~17 J per 20m×20m circuit ≈ 0.005 Wh. Meaningful at scale (multi-circuit survey missions, repeated descents).
+5. **Gimbal authority stays within ±5°** during normal cruise — well within the ±15° servo range. Full deflection reserved for aggressive attitude recovery.
+
+### Controller Parameters (validated in sim)
+
+```python
+# Position loop
+pos_Kp = 0.5      # (m/s^2)/m
+pos_Kd = 1.0      # (m/s^2)/(m/s)
+a_max  = 3.0      # m/s^2 horizontal limit
+TILT_MAX = 0.35   # rad (~20 deg)
+
+# Attitude loop (omega_n = 5 rad/s, zeta = 0.8)
+att_Kp = 25.0     # (rad/s^2)/rad
+att_Kd =  8.0     # (rad/s^2)/(rad/s)
+
+# Altitude (PI+D)
+alt_Kp = 0.5
+alt_Ki = 0.04
+alt_Kd = 0.3
+```
+
+---
+
 ## Phase 1 — Mechanical + Basic Flight (Weeks 1–6)
 
 **Goal:** Disc frame flies stably as a conventional quad. No flywheel yet.
@@ -98,10 +167,11 @@
 - [ ] Verify telemetry stream in Python
 
 ### Week 12: Dubins path implementation
-- [ ] Implement Dubins path library (use `dubins` Python package as base)
-- [ ] Add momentum constraint: query flywheel VESC state via UART
-- [ ] Compute turn radius adjustment from flywheel energy level
-- [ ] Generate test waypoint set (5-point circuit)
+- [x] Implement Dubins path library (inline LSL/RSR/LSR/RSL — no external dep)
+- [x] Add momentum constraint: turn radius scales with flywheel charge fraction
+- [x] Compute turn radius adjustment from flywheel energy level
+- [x] Generate test waypoint set (5-point circuit) — validated in simulation
+- [ ] Port to companion computer, query live VESC state via UART
 
 ### Week 13: MAVLink integration
 - [ ] Send Dubins-generated waypoints to ArduCopter via MAVLink

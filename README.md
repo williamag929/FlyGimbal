@@ -37,6 +37,7 @@ The goal: a drone that is **more efficient, quieter, and more stable** than conv
 ## Project Status
 
 - [x] Phase 0 — Concept & Architecture
+- [x] Phase 0.5 — Physics Simulation (complete)
 - [ ] Phase 1 — Frame CAD + Basic Flight (current)
 - [ ] Phase 2 — Flywheel Integration
 - [ ] Phase 3 — Companion Computer + Pathfinding
@@ -47,32 +48,60 @@ The goal: a drone that is **more efficient, quieter, and more stable** than conv
 ## Repository Structure
 
 ```
-gyrodrone/
+FlyGimbal/
 ├── README.md
+├── .github/
+│   ├── workflows/ci.yml
+│   └── ISSUE_TEMPLATE/
 ├── docs/
 │   ├── PHYSICS.md          # Theoretical foundation
 │   ├── BOM.md              # Full bill of materials
 │   ├── BUILD_GUIDE.md      # Step-by-step assembly
-│   └── ROADMAP.md          # Development timeline
+│   ├── ROADMAP.md          # Development timeline
+│   └── CONTRIBUTING.md
 ├── cad-specs/
 │   ├── FRAME_SPEC.md       # Fusion 360 design parameters
 │   ├── FLYWHEEL_SPEC.md    # Flywheel rotor dimensions
 │   └── GIMBAL_SPEC.md      # Motor gimbal mount spec
-├── firmware/
-│   ├── ardupilot-params/   # ArduCopter parameter files
-│   └── vesc-config/        # VESC flywheel configuration
-├── src/
-│   ├── pathfinding/        # Dubins path Python implementation
-│   └── momentum-manager/   # Flywheel state + energy logic
-└── hardware/
-    └── wiring-diagram/     # Electrical schematics
+└── src/
+    ├── pathfinding/
+    │   └── dubins_momentum.py      # MAVLink path planner
+    └── simulation/
+        └── gyrodrone_sim.py        # Full 6-DOF physics simulation
 ```
 
 ---
 
 ## Quick Start
 
-### Prerequisites
+### Run the Physics Simulation
+
+No hardware required. Validates the full system before building.
+
+```bash
+# Install dependencies
+python -m venv .venv
+.venv/Scripts/pip install numpy matplotlib   # Windows
+# or: .venv/bin/pip install numpy matplotlib  # Linux/Mac
+
+# Run default circuit mission (5 waypoints, 20m x 20m)
+.venv/Scripts/python src/simulation/gyrodrone_sim.py
+
+# Other mission profiles
+.venv/Scripts/python src/simulation/gyrodrone_sim.py --mission figure8
+.venv/Scripts/python src/simulation/gyrodrone_sim.py --mission lawnmower
+.venv/Scripts/python src/simulation/gyrodrone_sim.py --mission square
+
+# Compare with/without flywheel energy recovery
+.venv/Scripts/python src/simulation/gyrodrone_sim.py --no-regen
+
+# Higher fidelity timestep
+.venv/Scripts/python src/simulation/gyrodrone_sim.py --dt 0.005
+```
+
+Outputs: telemetry summary to console + `gyrodrone_simulation.png` (8-panel dashboard).
+
+### Prerequisites (Hardware Build)
 - Fusion 360 (free for hobbyists) for CAD
 - ArduCopter 4.5+ flashed on Matek H743
 - Python 3.10+ for companion computer scripts
