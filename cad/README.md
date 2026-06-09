@@ -11,6 +11,50 @@ generated parametrically by [tools/generate_cad_v02.py](../tools/generate_cad_v0
 
 ![v02 parts](preview_v02.png)
 
+## Who makes what
+
+### 1. Waterjet-cut carbon fiber — order from SendCutSend (send the DXF)
+
+SendCutSend waterjet-cuts carbon fiber and stocks our exact thicknesses
+(3.00 mm and 2.01 mm); the 400 mm plates fit their 23″×44″ envelope.
+PCBWay CNC is the cheaper-but-slower alternative.
+
+| File to upload | Material to select |
+|---|---|
+| `dxf/frame_bottom_v02.dxf` | Carbon fiber, .118″ (3.00 mm) |
+| `dxf/frame_top_v02.dxf` | Carbon fiber, .079″ (2.01 mm) |
+
+> ⚠ SendCutSend's minimum hole in CF is ~3.2 mm. The M3 holes (ø3.2) are
+> exactly at the limit — OK. The top plate's M2.5 holes (ø2.7, companion
+> computer + IMU grommets) are below it: either let them cut ø3.2 there too
+> (use M3 hardware instead) or have them skip those holes and hand-drill.
+
+### 2. CNC-machined aluminum — order from PCBWay / Xometry / local shop (send the STEP)
+
+**Never 3D print these two** — one stores 272 J at 84 m/s rim speed, the
+other is the safety part that contains it if it bursts.
+
+| File to upload | Material |
+|---|---|
+| `stl/step/flywheel_rotor_v01.step` (default rotor) | 6061-T6 |
+| `stl/step/containment_cup_v01.step` | 6061-T6 |
+| `stl/step/flywheel_rotor_v02.step` — only if you want the heavy rotor | 6061-T6 |
+
+### 3. 3D print at home (slice the STL)
+
+Settings per FRAME_SPEC: 0.2 mm layers, 4 perimeters, 40% gyroid infill.
+
+| File | Material |
+|---|---|
+| `stl/gimbal_servo_mount_v01.stl` | PETG |
+| `stl/gimbal_motor_plate_v01.stl` | PETG |
+| `stl/vesc_mount_bracket_v01.stl` | PETG |
+| `stl/landing_leg_v01.stl` (×4) | TPU |
+| `stl/flywheel_boss_v01.stl` | PETG — **⚠ don't print yet**: flange bolt circle must move 55→62 mm to match the v02 plate |
+
+Tip: the frame plates can also be printed in PETG/ASA first as a cheap
+fit-check before ordering the carbon fiber.
+
 ## Inventory
 
 | Part | Version | Source | Material | Mass | Status |
