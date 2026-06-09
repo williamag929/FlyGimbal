@@ -65,10 +65,9 @@ Takes ~3 minutes. Exits 0 on all-pass, 1 on any failure.
 
 ## Lua applet test — flywheel coupling mitigation
 
-`src/fc-lua/flywheel_coupling.lua` runs **on the flight controller** and is the
-interim answer to the flywheel gyroscopic-coupling problem (true rate-loop
-feed-forward is not exposed to Lua; that still needs a firmware patch for
-sustained high-RPM flight). The applet:
+`src/fc-lua/flywheel_coupling.lua` runs **on the flight controller**. On stock
+firmware it provides gain-scheduling mitigation; on patched firmware (see
+below) it additionally drives true rate-loop feed-forward. The applet:
 
 - receives flywheel RPM from the companion (`NAMED_VALUE_FLOAT "FWRPM"`,
   broadcast at 5 Hz by `momentum_manager.py`)
@@ -91,11 +90,34 @@ Implementation note: `mavlink:receive_chan()` delivers a serialized
 `mavlink_message_t` struct (checksum@1, magic@3, msgid u24@10, payload@13),
 NOT raw wire bytes. Parsing it as wire format fails silently.
 
+## Patched firmware test — true gyroscopic feed-forward
+
+The `tau_roll += H*q; tau_pitch -= H*p` term validated in `gyrodrone_sim.py`
+is now available as a real firmware patch — see
+[src/firmware-patch/README.md](../src/firmware-patch/README.md). The Lua applet
+auto-detects it: on patched builds it announces
+`FWC: firmware feed-forward active` and pushes live `H = I·ω` into the rate
+loop; on stock builds it announces `FWC: stock firmware, gain scheduling only`
+and falls back gracefully.
+
+Build + validate (WSL):
+
+```bash
+bash /mnt/d/Projects/Python/FlyGimbal/src/firmware-patch/build_sitl.sh
+# launch ~/sitl-patched/arducopter (same launch command, cd ~/sitl-patched), then:
+# .venv\Scripts\python src\fc-lua\sitl_lua_test.py        (from Windows)
+```
+
+Last run (2026-06-09, ArduPilot master @ 1b7d3cde): **7/7 PASS** — including
+`FWC: firmware feed-forward active`, and the stale-telemetry failsafe zeroing
+the feed-forward (`set_flywheel_momentum(0)`) alongside the gain revert.
+
+To verify the stock-firmware fallback path instead, run the same test against
+the unpatched binary with `--stock`.
+
 ## Known sim-vs-real gaps this does NOT cover
 
 - The VESC side is still simulated (`VESCInterface(sim=True)`) — regen/assist
   joule numbers are bookkeeping estimates, not physics.
-- The Lua applet is mitigation, not feed-forward. Before sustained flight
-  above ~12k flywheel RPM, ArduCopter needs an AC_AttitudeControl patch adding
-  `tau_roll += L_fw*q; tau_pitch -= L_fw*p` (the term validated in
-  `gyrodrone_sim.py`).
+- `FWC_ACT_NM` (actuator output per N·m) is a placeholder (0.8) until measured
+  on the real airframe — SITL confirms the plumbing, not the scaling.

@@ -194,6 +194,8 @@ alt_Kd = 0.3
 
 ## Phase 4 — Optimization (Ongoing)
 
+- [x] Firmware gyroscopic feed-forward (AC_AttitudeControl patch + Lua binding,
+      validated in patched SITL 2026-06-09 — see src/firmware-patch/)
 - [ ] PID retuning with flywheel active (gyroscopic coupling compensation)
 - [ ] VESC regen profile optimization per mission type
 - [ ] Pathfinding extension: 3D arc paths (altitude changes)
