@@ -25,7 +25,7 @@ Parameters created (FWC_):
   FWC_RPM_MAX   flywheel RPM at full charge        (default 20000)
   FWC_SCL_MAX   gain multiplier at RPM_MAX         (default 1.25)
   FWC_RPM_WARN  GCS warning threshold              (default 19000)
-  FWC_INERTIA   rotor inertia kg*m^2               (default 1.16e-4, as-built v01)
+  FWC_INERTIA   rotor inertia kg*m^2               (default 1.24e-4, as-built v01)
   FWC_ACT_NM    actuator output per N*m torque     (default 0.8, tune from logs)
 --]]
 
@@ -43,7 +43,7 @@ assert(param:add_param(PARAM_TABLE_KEY, 1, "ENABLE",   2),       "FWC: param fai
 assert(param:add_param(PARAM_TABLE_KEY, 2, "RPM_MAX",  20000),   "FWC: param failed")
 assert(param:add_param(PARAM_TABLE_KEY, 3, "SCL_MAX",  1.25),    "FWC: param failed")
 assert(param:add_param(PARAM_TABLE_KEY, 4, "RPM_WARN", 19000),   "FWC: param failed")
-assert(param:add_param(PARAM_TABLE_KEY, 5, "INERTIA",  0.000116),"FWC: param failed")
+assert(param:add_param(PARAM_TABLE_KEY, 5, "INERTIA",  0.000124),"FWC: param failed")
 assert(param:add_param(PARAM_TABLE_KEY, 6, "ACT_NM",   0.8),     "FWC: param failed")
 
 local FWC_ENABLE   = Parameter("FWC_ENABLE")

@@ -21,8 +21,8 @@ scripting binding. If the refresh stops for 3 s, the feed-forward zeroes itself.
 
 Sign convention (verified against simulation): flywheel spin axis is body Z;
 coupling torque on the airframe is `(-H·q, +H·p)`, the feed-forward adds the
-negative. At 20,000 RPM with the as-built v01 rotor (I = 1.16e-4 kg·m²),
-H ≈ 0.24 N·m·s.
+negative. At 20,000 RPM with the as-built v01 rotor (I = 1.24e-4 kg·m²),
+H ≈ 0.26 N·m·s.
 
 ## Files
 

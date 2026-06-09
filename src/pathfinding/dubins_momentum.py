@@ -49,7 +49,7 @@ class FlywheelState:
         self._sim     = True  # Switch to False when VESC is wired
 
         # Flywheel rotor moment of inertia (as-built v01, from FLYWHEEL_SPEC.md)
-        self.I = 1.16e-4  # kg·m²
+        self.I = 1.24e-4  # kg·m²
 
         if not self._sim:
             try:

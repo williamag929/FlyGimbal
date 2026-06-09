@@ -70,7 +70,7 @@ MOTOR_SPIN   = [+1, -1, +1, -1]    # alternating for yaw balance
 
 # ---- Flywheel (FLYWHEEL_SPEC.md) ----------------------------------------------
 
-FW_I         = 1.16e-4  # kg*m^2  (as-built v01 rotor, 118g — measured from STL)
+FW_I         = 1.24e-4  # kg*m^2  (as-built v01 rotor, 118g — exact tetra integral of STL)
 FW_RPM_MAX   = 20_000
 FW_RPM_MIN   =  5_000
 FW_RPM_IDLE  = 15_000

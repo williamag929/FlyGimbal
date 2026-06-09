@@ -43,6 +43,46 @@ GyroDrone ring: ~5.3× more gyroscopic stability per kg
 
 ---
 
+## v02 Lightening Pass (generated 2026-06-09)
+
+Parametric geometry in `tools/generate_cad_v02.py`; exports in `cad/stl/`,
+`cad/stl/step/`, and `cad/dxf/` (CNC cut profiles). Verified with
+`tools/stl_check.py`.
+
+| Part | v01 as-built | v02 | Change |
+|---|---|---|---|
+| Bottom plate (3mm CF) | ~255 g | **~164 g** | ring band 45 → 14 mm (R186–R200) |
+| Top plate (2mm CF) | ~201 g | **~56 g** | full-disc → R80 electronics tray |
+| **Total** | **~456 g** | **~219 g** | −52% |
+
+v02 design changes:
+- **Bottom ring band narrowed** to R186–R200; motor pads (30×30 at R185)
+  carry the bolt patterns locally. Hub annulus R55–R78, 4 spokes 14 mm
+  at 45° (unchanged philosophy: mass at rim, X-spokes vs +-motors).
+- **Top plate is no longer full-diameter** — it's an R80 tray on the R60
+  standoffs: FC 30.5×30.5, companion 58×23 (M2.5) on +Y, 3× IMU grommet
+  holes at R38, 8× ø20 lightening holes.
+- **Flywheel boss bolt circle moves 55 → 62 mm** at the 45° (spoke)
+  positions — R55 sat exactly on the bay cutout edge, unbuildable. These
+  4 holes are shared with the containment-cup ears (sandwich: boss flange /
+  plate / cup ear, one M3×12 each). `flywheel_boss_v01` needs a matching
+  flange update in Fusion before cutting the v02 bottom plate.
+- **Wire slots moved to 22.5° positions** (16×5 mm at R66.5) to clear the
+  boss/cup bolts now occupying 45°.
+
+Trade-off note: narrowing the outer ring cuts the frame's own yaw moment of
+inertia roughly in half (Izz/ρ 4.6e-3 → 2.4e-3 m⁵ for the bottom plate) —
+acceptable: stabilization authority comes from the flywheel, not the plates,
+and hover power is the binding constraint. All-up estimate with v02 plates +
+containment cup (~102 g): **~1.27 kg** vs the 1.2 kg used in simulation —
+within tuning margin, but re-measure after assembly.
+
+Remaining for Fusion refinement: corner fillets (R3 min — the generator
+leaves sharp internal corners at spoke junctions), boss v02 flange,
+battery strap slots.
+
+---
+
 ## Layer Stack (top to bottom)
 
 ```
@@ -207,8 +247,8 @@ Level 4 — Flywheel bearing:
 
 ## Files to Generate
 
-- [ ] `frame_bottom_v01.dxf` — CNC cut file, bottom plate
-- [ ] `frame_top_v01.dxf` — CNC cut file, top plate
-- [ ] `frame_assembly_v01.f3d` — Fusion 360 full assembly
+- [x] `frame_bottom_v02.dxf` — CNC cut file, bottom plate (cad/dxf/, generated 2026-06-09)
+- [x] `frame_top_v02.dxf` — CNC cut file, top plate (cad/dxf/, generated 2026-06-09)
+- [ ] `frame_assembly_v02.f3d` — Fusion 360 full assembly (fillets + boss v02)
 - [ ] `motor_mount_v01.stl` — Optional printed motor adapter
-- [ ] `landing_leg_v01.stl` — TPU landing bumpers (x4)
+- [x] `landing_leg_v01.stl` — TPU landing bumpers (x4) (cad/stl/)

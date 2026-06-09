@@ -53,7 +53,7 @@ log = logging.getLogger("MomentumManager")
 
 # ─── Constants ────────────────────────────────────────────────────────────────
 
-FLYWHEEL_I          = 1.16e-4   # kg·m²  — as-built v01 rotor (118g, from STL)
+FLYWHEEL_I          = 1.24e-4   # kg·m²  — as-built v01 rotor (118g, exact tetra integral of STL)
 FLYWHEEL_RPM_MAX    = 20_000    # RPM    — full charge
 FLYWHEEL_RPM_MIN    =  5_000    # RPM    — min useful (below = no regen gain)
 FLYWHEEL_RPM_IDLE   =  8_000    # RPM    — default hover setpoint
@@ -64,8 +64,8 @@ G                   =  9.81     # m/s²
 BANK_MAX_DEG        = 30.0      # degrees
 
 # Energy thresholds (Joules)
-KE_MAX = 0.5 * FLYWHEEL_I * (FLYWHEEL_RPM_MAX * 2*math.pi/60)**2   # ~254 J
-KE_MIN = 0.5 * FLYWHEEL_I * (FLYWHEEL_RPM_MIN * 2*math.pi/60)**2   # ~16 J
+KE_MAX = 0.5 * FLYWHEEL_I * (FLYWHEEL_RPM_MAX * 2*math.pi/60)**2   # ~272 J
+KE_MIN = 0.5 * FLYWHEEL_I * (FLYWHEEL_RPM_MIN * 2*math.pi/60)**2   # ~17 J
 
 # Telemetry ring buffer size
 TELEM_BUFFER = 100

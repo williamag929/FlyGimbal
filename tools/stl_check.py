@@ -33,10 +33,13 @@ def analyze(path):
            - v0[1]*(v1[0]*v2[2]-v1[2]*v2[0])
            + v0[2]*(v1[0]*v2[1]-v1[1]*v2[0])) / 6.0
         vol += v
-        # centroid-based Izz contribution (rough)
-        cx = (v0[0]+v1[0]+v2[0])/4.0
-        cy = (v0[1]+v1[1]+v2[1])/4.0
-        izz += v * (cx*cx + cy*cy)
+        # exact tetra Izz (vertex at origin):
+        # integral(x^2+y^2) dV = V/10 * (sum_i q_i^2 + sum_{i<j} q_i q_j), q in {x,y}
+        sx = v0[0]*v0[0] + v1[0]*v1[0] + v2[0]*v2[0] \
+           + v0[0]*v1[0] + v0[0]*v2[0] + v1[0]*v2[0]
+        sy = v0[1]*v0[1] + v1[1]*v1[1] + v2[1]*v2[1] \
+           + v0[1]*v1[1] + v0[1]*v2[1] + v1[1]*v2[1]
+        izz += v * (sx + sy) / 10.0
     dx = max(xs)-min(xs); dy = max(ys)-min(ys); dz = max(zs)-min(zs)
     return (f"{Path(path).name:32s} tris={len(tris):6d}  "
             f"bbox: {dx:7.1f} x {dy:7.1f} x {dz:6.1f} mm  "
