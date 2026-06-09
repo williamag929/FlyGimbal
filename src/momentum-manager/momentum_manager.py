@@ -297,6 +297,20 @@ class FCInterface:
             return self._sim_telemetry()
         return self._read_mavlink()
 
+    def send_flywheel_rpm(self, rpm: float):
+        """Broadcast flywheel RPM to the FC as NAMED_VALUE_FLOAT 'FWRPM'.
+
+        Consumed by the flywheel_coupling.lua applet on the flight
+        controller for gain scheduling and overspeed warnings.
+        """
+        if self.sim or self._mav is None:
+            return
+        self._mav.mav.named_value_float_send(
+            int(time.time() * 1000) & 0xFFFFFFFF,
+            b"FWRPM",
+            rpm,
+        )
+
     def _sim_telemetry(self) -> FlightTelemetry:
         """Simulate a simple hover → descend → ascend cycle."""
         t = time.time()
@@ -548,6 +562,10 @@ class MomentumManager:
         self._execute_mode(fw, fc)
 
         self._loop_count += 1
+
+        # Broadcast flywheel RPM to FC at 5Hz for the Lua coupling applet
+        if self._loop_count % (self.LOOP_HZ // 5) == 0:
+            self.fc.send_flywheel_rpm(fw.rpm)
 
         # 4. Periodic status log (every 5s)
         if self._loop_count % (self.LOOP_HZ * 5) == 0:

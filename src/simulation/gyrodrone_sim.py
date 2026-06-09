@@ -279,6 +279,62 @@ def _wrap(a: float) -> float:
     return math.atan2(math.sin(a), math.cos(a))
 
 
+class Wind:
+    """
+    Steady wind + first-order Gauss-Markov gusts (Dryden-lite).
+
+    direction_deg is the direction the wind blows TOWARD (NED heading).
+    Gusts decorrelate over tau seconds; vertical gusts are 1/3 horizontal.
+    """
+
+    def __init__(self, rng, speed: float = 0.0, direction_deg: float = 0.0,
+                 gust_sigma: float = None, tau: float = 2.0):
+        self.rng = rng
+        rad = math.radians(direction_deg)
+        self.steady = np.array([speed*math.cos(rad), speed*math.sin(rad), 0.0])
+        self.gust_sigma = 0.3*speed if gust_sigma is None else gust_sigma
+        self.tau  = tau
+        self.gust = np.zeros(3)
+
+    def step(self, dt: float) -> np.ndarray:
+        """Advance gust state, return current wind vector (NED, m/s)."""
+        sig = np.array([self.gust_sigma, self.gust_sigma, self.gust_sigma/3.0])
+        self.gust += (-self.gust/self.tau)*dt \
+                     + sig*math.sqrt(2.0*dt/self.tau)*self.rng.standard_normal(3)
+        return self.steady + self.gust
+
+
+class SensorNoise:
+    """
+    Measurement model: the controller sees this, not truth.
+
+    - position: GPS-like Gauss-Markov bias (tau=10s, sigma=0.4m) + 5cm white
+    - velocity: 0.1 m/s white
+    - attitude: 0.3 deg white (EKF-quality estimate)
+    - gyro rates: 0.02 rad/s white
+    """
+
+    def __init__(self, rng, scale: float = 1.0):
+        self.rng      = rng
+        self.scale    = scale
+        self.pos_bias = np.zeros(3)
+        self.tau      = 10.0
+
+    def measure(self, s: "State", dt: float) -> "State":
+        sc, rng = self.scale, self.rng
+        self.pos_bias += (-self.pos_bias/self.tau)*dt \
+                         + 0.4*sc*math.sqrt(2.0*dt/self.tau)*rng.standard_normal(3)
+        n = lambda sig: rng.normal(0.0, sig*sc)
+        return State(
+            x=s.x + self.pos_bias[0] + n(0.05),
+            y=s.y + self.pos_bias[1] + n(0.05),
+            z=s.z + self.pos_bias[2] + n(0.05),
+            vx=s.vx + n(0.1), vy=s.vy + n(0.1), vz=s.vz + n(0.1),
+            phi=s.phi + n(0.005), theta=s.theta + n(0.005), psi=s.psi + n(0.005),
+            p=s.p + n(0.02), q=s.q + n(0.02), r=s.r + n(0.02),
+        )
+
+
 class Dynamics:
     """
     6-DOF rigid-body integration for the GyroDrone disc-frame.
@@ -290,11 +346,14 @@ class Dynamics:
         forces/torques --> state derivative --> Euler integration
     """
 
-    def __init__(self, alt0: float = 10.0, regen: bool = True):
+    def __init__(self, alt0: float = 10.0, regen: bool = True,
+                 wind: Wind = None, noise: SensorNoise = None):
         self.s       = State(z=-alt0)
         self.motors  = Motors()
         self.gimbal  = Gimbal()
         self.fw      = Flywheel(regen=regen)
+        self.wind    = wind
+        self.noise   = noise
 
         # Integrators
         self._i_alt  = 0.0
@@ -310,7 +369,8 @@ class Dynamics:
         t_yaw: float,
     ) -> float:
         """Returns current throttle (for gimbal enable check)."""
-        s = self.s
+        # Control acts on MEASURED state when sensor noise is modelled
+        s = self.noise.measure(self.s, dt) if self.noise else self.s
         cy, sy = math.cos(s.psi), math.sin(s.psi)
 
         # ---- outer loop: position -> desired horizontal acceleration ----
@@ -416,14 +476,18 @@ class Dynamics:
         Fy_ned = -(sy*sp*cr - cy*sr) * T - (cp*sy) * F_x_body
         Fz_ned = -(cp*cr)            * T + MASS*G   # gravity positive (NED)
 
-        # ---- aerodynamic drag ----
-        v2d = math.sqrt(s.vx**2 + s.vy**2)
-        v3d = math.sqrt(v2d**2 + s.vz**2)
+        # ---- aerodynamic drag (on air-relative velocity, so wind pushes) ----
+        if self.wind is not None:
+            w = self.wind.step(dt)
+            vrx, vry, vrz = s.vx - w[0], s.vy - w[1], s.vz - w[2]
+        else:
+            vrx, vry, vrz = s.vx, s.vy, s.vz
+        v3d = math.sqrt(vrx**2 + vry**2 + vrz**2)
         if v3d > 0.05:
             drag = 0.5 * RHO * CD_BODY * A_FRONT * v3d**2
-            Fx_ned -= drag * s.vx / v3d
-            Fy_ned -= drag * s.vy / v3d
-            Fz_ned -= drag * s.vz / v3d
+            Fx_ned -= drag * vrx / v3d
+            Fy_ned -= drag * vry / v3d
+            Fz_ned -= drag * vrz / v3d
 
         # ---- torques ----
         # Gyroscopic precession from flywheel (spin axis = body Z)
@@ -605,13 +669,24 @@ class Mission:
         speed:     float = 5.0,
         dt:        float = 0.01,
         regen:     bool  = True,
+        wind_speed: float = 0.0,
+        wind_dir:   float = 0.0,
+        gust_sigma: float = None,
+        noise:      bool  = False,
+        seed:       int   = 42,
     ):
         self.wps      = waypoints
         self.alt      = altitude
         self.speed    = speed
         self.dt       = dt
         self.tel: List[Tel] = []
-        self.drone    = Dynamics(alt0=altitude, regen=regen)
+        rng   = np.random.default_rng(seed)
+        wind  = Wind(rng, wind_speed, wind_dir, gust_sigma) if wind_speed > 0 or gust_sigma else None
+        sens  = SensorNoise(rng) if noise else None
+        self.wind_speed = wind_speed
+        self.wind_dir   = wind_dir
+        self.noise      = noise
+        self.drone    = Dynamics(alt0=altitude, regen=regen, wind=wind, noise=sens)
 
     def _rho(self) -> float:
         """Momentum-aware minimum turning radius."""
@@ -640,6 +715,10 @@ class Mission:
         print(f"  Speed       : {self.speed} m/s", flush=True)
         print(f"  Timestep    : {self.dt} s", flush=True)
         print(f"  Regen FESS  : {regen_str}", flush=True)
+        if self.drone.wind:
+            print(f"  Wind        : {self.wind_speed:.1f} m/s toward {self.wind_dir:.0f} deg "
+                  f"(gust sigma {self.drone.wind.gust_sigma:.1f} m/s)", flush=True)
+        print(f"  Sensor noise: {'on' if self.noise else 'off (perfect state)'}", flush=True)
         print(f"  Drone mass  : {MASS:.3f} kg", flush=True)
         print(f"  Hover omega : {OMEGA_HOVER:.0f} rad/s  ({OMEGA_HOVER*60/(2*math.pi):.0f} RPM)", flush=True)
         print(f"  I_zz        : {I_ZZ*1e4:.2f}e-4 kg*m^2", flush=True)
@@ -685,11 +764,19 @@ class Mission:
                 )
 
         total_regen = sum(r.regen_w * self.dt for r in self.tel)
+        # Tracking quality: distance to current path target (target leads the
+        # drone by design, so compare runs with the same mission/speed)
+        offsets  = [math.hypot(r.x - r.tgt_x, r.y - r.tgt_y) for r in self.tel]
+        alt_errs = [abs(r.alt - self.alt) for r in self.tel]
         print(f"\n{'='*58}", flush=True)
         print(f"Mission done:  t={t:.1f}s  |  {len(self.tel)} samples", flush=True)
         print(f"  Regen recovered  : {total_regen:.1f} J  ({total_regen/3600:.4f} Wh)", flush=True)
         print(f"  Final FW charge  : {self.drone.fw.charge:.0%}", flush=True)
         print(f"  Max 2D speed     : {max(math.sqrt(r.vx**2+r.vy**2) for r in self.tel):.1f} m/s", flush=True)
+        print(f"  Target offset    : mean {sum(offsets)/len(offsets):.2f} m  "
+              f"max {max(offsets):.2f} m", flush=True)
+        print(f"  Altitude error   : mean {sum(alt_errs)/len(alt_errs):.2f} m  "
+              f"max {max(alt_errs):.2f} m", flush=True)
         print(f"  Final pos        : ({s.x:.1f}, {s.y:.1f})", flush=True)
         print(f"{'='*58}\n", flush=True)
 
@@ -857,6 +944,15 @@ def main():
     parser.add_argument("--dt",       default=0.01, type=float)
     parser.add_argument("--no-regen", action="store_true")
     parser.add_argument("--no-plot",  action="store_true")
+    parser.add_argument("--wind",     default=0.0, type=float,
+                        help="steady wind speed m/s")
+    parser.add_argument("--wind-dir", default=90.0, type=float,
+                        help="wind direction deg (blowing toward, NED heading)")
+    parser.add_argument("--gust",     default=None, type=float,
+                        help="gust sigma m/s (default 0.3*wind)")
+    parser.add_argument("--noise",    action="store_true",
+                        help="enable sensor noise (GPS bias, IMU/attitude noise)")
+    parser.add_argument("--seed",     default=42, type=int)
     args = parser.parse_args()
 
     sim = Mission(
@@ -865,6 +961,11 @@ def main():
         speed     = args.speed,
         dt        = args.dt,
         regen     = not args.no_regen,
+        wind_speed = args.wind,
+        wind_dir   = args.wind_dir,
+        gust_sigma = args.gust,
+        noise      = args.noise,
+        seed       = args.seed,
     )
     sim.run()
 

@@ -95,6 +95,10 @@ python -m venv .venv
 # Compare with/without flywheel energy recovery
 .venv/Scripts/python src/simulation/gyrodrone_sim.py --no-regen
 
+# Real-world stress: wind + gusts + sensor noise (GPS bias, IMU noise)
+.venv/Scripts/python src/simulation/gyrodrone_sim.py --wind 5 --noise
+.venv/Scripts/python src/simulation/gyrodrone_sim.py --wind 8 --gust 3 --noise
+
 # Higher fidelity timestep
 .venv/Scripts/python src/simulation/gyrodrone_sim.py --dt 0.005
 ```

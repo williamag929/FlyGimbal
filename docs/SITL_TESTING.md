@@ -63,10 +63,39 @@ Takes ~3 minutes. Exits 0 on all-pass, 1 on any failure.
 4. The test sets `ARMING_CHECK=0` and `FS_THR_ENABLE=0` because no RC is
    attached. **Bench config only — never on real hardware.**
 
+## Lua applet test — flywheel coupling mitigation
+
+`src/fc-lua/flywheel_coupling.lua` runs **on the flight controller** and is the
+interim answer to the flywheel gyroscopic-coupling problem (true rate-loop
+feed-forward is not exposed to Lua; that still needs a firmware patch for
+sustained high-RPM flight). The applet:
+
+- receives flywheel RPM from the companion (`NAMED_VALUE_FLOAT "FWRPM"`,
+  broadcast at 5 Hz by `momentum_manager.py`)
+- gain-schedules `ATC_RAT_RLL/PIT` P+D up to `FWC_SCL_MAX` (default 1.25×)
+  at full RPM — runtime-only writes, no flash wear
+- warns the GCS on overspeed, reverts gains if RPM telemetry goes stale
+
+Validate it against SITL (script must be in `~/sitl/scripts/` before launch):
+
+```powershell
+wsl -e bash -lc "mkdir -p ~/sitl/scripts && cp /mnt/d/Projects/Python/FlyGimbal/src/fc-lua/flywheel_coupling.lua ~/sitl/scripts/"
+# start SITL (terminal 1, as above), then:
+.venv\Scripts\python src\fc-lua\sitl_lua_test.py
+```
+
+Last run (2026-06-09): **6/6 PASS** — gains scaled 0.135→0.169 at 20k RPM,
+overspeed + stale-failsafe messages confirmed.
+
+Implementation note: `mavlink:receive_chan()` delivers a serialized
+`mavlink_message_t` struct (checksum@1, magic@3, msgid u24@10, payload@13),
+NOT raw wire bytes. Parsing it as wire format fails silently.
+
 ## Known sim-vs-real gaps this does NOT cover
 
 - The VESC side is still simulated (`VESCInterface(sim=True)`) — regen/assist
   joule numbers are bookkeeping estimates, not physics.
-- ArduCopter has **no gyroscopic feed-forward** for the flywheel; that
-  integration question (Lua script vs. firmware patch) is still open and must
-  be resolved before Phase 2 flight with the flywheel spinning.
+- The Lua applet is mitigation, not feed-forward. Before sustained flight
+  above ~12k flywheel RPM, ArduCopter needs an AC_AttitudeControl patch adding
+  `tau_roll += L_fw*q; tau_pitch -= L_fw*p` (the term validated in
+  `gyrodrone_sim.py`).
