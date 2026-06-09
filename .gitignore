@@ -21,8 +21,11 @@ build/
 .DS_Store
 Thumbs.db
 
-# CAD exports
+# CAD exports — ignored everywhere except released geometry under cad/
 *.stl
 *.step
 *.f3d
 *.3mf
+!cad/**/*.stl
+!cad/**/*.step
+cad/*.zip
