@@ -174,9 +174,11 @@ alt_Kd = 0.3
 - [ ] Port to companion computer, query live VESC state via UART
 
 ### Week 13: MAVLink integration
-- [ ] Send Dubins-generated waypoints to ArduCopter via MAVLink
+- [x] Send Dubins-generated waypoints to ArduCopter via MAVLink — validated in SITL
 - [ ] Override default straight-line interpolation
-- [ ] Test in SITL (Software In The Loop) simulation first
+- [x] Test in SITL (Software In The Loop) simulation first — see [SITL_TESTING.md](SITL_TESTING.md)
+      (7/7 checks pass: Dubins circuit tracked, REGEN/DISCHARGE state machine
+      triggers on real descent/climb, telemetry staleness < 100 ms)
 - [ ] Log commanded vs actual path
 
 ### Week 14: Full system flight test
