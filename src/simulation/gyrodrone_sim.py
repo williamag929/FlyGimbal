@@ -308,7 +308,11 @@ class SensorNoise:
     """
     Measurement model: the controller sees this, not truth.
 
-    - position: GPS-like Gauss-Markov bias (tau=10s, sigma=0.4m) + 5cm white
+    - x/y position: GPS-like Gauss-Markov bias (tau=10s, sigma=0.4m) + 5cm white
+    - z (altitude): baro-class — bias sigma=0.1m (tau=30s) + 5cm white.
+      A real FC fuses baro for altitude, never raw GPS z; modelling GPS-class
+      bias on z overstates altitude error ~4x and no controller can fix an
+      estimation bias.
     - velocity: 0.1 m/s white
     - attitude: 0.3 deg white (EKF-quality estimate)
     - gyro rates: 0.02 rad/s white
@@ -318,12 +322,18 @@ class SensorNoise:
         self.rng      = rng
         self.scale    = scale
         self.pos_bias = np.zeros(3)
-        self.tau      = 10.0
+        self.tau_xy   = 10.0
+        self.tau_z    = 30.0
 
     def measure(self, s: "State", dt: float) -> "State":
         sc, rng = self.scale, self.rng
-        self.pos_bias += (-self.pos_bias/self.tau)*dt \
-                         + 0.4*sc*math.sqrt(2.0*dt/self.tau)*rng.standard_normal(3)
+        w = rng.standard_normal(3)
+        self.pos_bias[0] += (-self.pos_bias[0]/self.tau_xy)*dt \
+                            + 0.4*sc*math.sqrt(2.0*dt/self.tau_xy)*w[0]
+        self.pos_bias[1] += (-self.pos_bias[1]/self.tau_xy)*dt \
+                            + 0.4*sc*math.sqrt(2.0*dt/self.tau_xy)*w[1]
+        self.pos_bias[2] += (-self.pos_bias[2]/self.tau_z)*dt \
+                            + 0.1*sc*math.sqrt(2.0*dt/self.tau_z)*w[2]
         n = lambda sig: rng.normal(0.0, sig*sc)
         return State(
             x=s.x + self.pos_bias[0] + n(0.05),

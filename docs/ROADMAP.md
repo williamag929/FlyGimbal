@@ -57,6 +57,7 @@ python -m venv .venv
 3. **Turning radius compression is measurable.** At full flywheel charge (67%→100%): r_min drops from 8.8 m to 4.4 m — a 50% tighter arc at the same bank angle limit.
 4. **Regen is modest but real.** ~17 J per 20m×20m circuit ≈ 0.005 Wh. Meaningful at scale (multi-circuit survey missions, repeated descents).
 5. **Gimbal authority stays within ±5°** during normal cruise — well within the ±15° servo range. Full deflection reserved for aggressive attitude recovery.
+6. **Wind/noise robustness (added 2026-06-09):** stable through 8 m/s wind + 3 m/s gusts + sensor noise (`--wind 8 --gust 3 --noise`). Altitude holds ~0.3 m mean error under 5 m/s wind with baro-class altitude estimation. Modelling note: feeding GPS-class z-bias to the controller overstated altitude error 4× — no controller fixes an estimation bias, so the noise model uses baro-class z (the EKF reality). Position x/y keep GPS-class bias.
 
 ### Controller Parameters (validated in sim)
 

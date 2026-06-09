@@ -38,7 +38,7 @@ The highest-value contributions right now are in these areas:
 ### 1. Fork and Clone
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/FlyGimbal.git
+git clone https://github.com/williamag929/FlyGimbal.git
 cd FlyGimbal
 ```
 
