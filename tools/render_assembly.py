@@ -52,6 +52,31 @@ def pol(r, deg):
     return r * math.cos(a), r * math.sin(a)
 
 
+def box(w, d, h, x=0.0, y=0.0, z=0.0):
+    """Axis-aligned cuboid as triangles, base center at (x,y,z)."""
+    xs, ys, zs = w / 2, d / 2, h
+    p = np.array([[x - xs, y - ys, z], [x + xs, y - ys, z],
+                  [x + xs, y + ys, z], [x - xs, y + ys, z],
+                  [x - xs, y - ys, z + zs], [x + xs, y - ys, z + zs],
+                  [x + xs, y + ys, z + zs], [x - xs, y + ys, z + zs]])
+    quads = [(0, 3, 2, 1), (4, 5, 6, 7), (0, 1, 5, 4),
+             (1, 2, 6, 5), (2, 3, 7, 6), (3, 0, 4, 7)]
+    tris = []
+    for a, b, c, dq in quads:
+        tris.append([p[a], p[b], p[c]])
+        tris.append([p[a], p[c], p[dq]])
+    return np.array(tris)
+
+
+def rot_about(tris, pivot, axis, deg):
+    """Rotate triangle array about an axis through pivot (Rodrigues)."""
+    u = np.array(axis, dtype=float); u /= np.linalg.norm(u)
+    th = math.radians(deg)
+    K = np.array([[0, -u[2], u[1]], [u[2], 0, -u[0]], [-u[1], u[0], 0]])
+    R = np.eye(3) + math.sin(th) * K + (1 - math.cos(th)) * (K @ K)
+    return (tris - pivot) @ R.T + pivot
+
+
 def assembly(explode=0.0):
     """Return list of (tris, base_color). explode = extra z separation."""
     e = explode
@@ -72,10 +97,29 @@ def assembly(explode=0.0):
 
     parts += [(bot, grey_cf), (top, grey_cf), (cup, alu), (rot, orange)]
 
+    servo = (0.80, 0.15, 0.15)
+    GIMBALED = (0, 90)          # front pair: thrust-vector gimbals (GIMBAL_SPEC)
     for ang in (0, 90, 180, 270):
         x, y = pol(185, ang)
-        parts.append((cylinder(14, 22, x, y, 3 + 0.5 * e), dark))          # motor
-        parts.append((cylinder(63.5, 1.5, x, y, 25 + 1.5 * e), prop))      # prop disc
+        motor = cylinder(14, 22, x, y, 5 + 0.5 * e)
+        disc = cylinder(63.5, 1.5, x, y, 27 + 1.5 * e)
+        if ang in GIMBALED:
+            # single-axis gimbal: motor plate pivots about the spanwise
+            # (tangential) axis, tilted here to make the DOF visible
+            a = math.radians(ang)
+            tangent = (-math.sin(a), math.cos(a), 0.0)
+            pivot = np.array([x, y, 5 + 0.5 * e])
+            plate = cylinder(21, 2, x, y, 3 + 0.5 * e)          # motor plate
+            tilt = 12.0
+            parts.append((rot_about(plate, pivot, tangent, tilt), alu))
+            parts.append((rot_about(motor, pivot, tangent, tilt), dark))
+            parts.append((rot_about(disc, pivot, tangent, tilt), prop))
+            # servo mount block beside the pivot (Savox SH-0257MG)
+            sx_, sy_ = pol(185 - 30, ang)
+            parts.append((box(18, 32, 24, sx_, sy_, 3 + 0.5 * e), servo))
+        else:
+            parts.append((motor, dark))
+            parts.append((disc, prop))
         sx, sy = pol(60, ang)
         parts.append((cylinder(2.5, 20, sx, sy, 3 + e), (0.5, 0.5, 0.55)))  # standoff
     return parts
@@ -118,7 +162,8 @@ if __name__ == "__main__":
     render(axes[1], assembly(30.0), title="exploded view")
     fig.text(0.5, 0.03,
              "CF plates (dark) · 6061 containment cup + rotor (silver/orange) · "
-             "motors + 5\" props + standoffs are placeholders",
+             "front pair on thrust-vector gimbals, shown tilted 12° with servo "
+             "blocks (red) · motors/props/standoffs are placeholders",
              ha="center", fontsize=10, color="0.4")
     plt.tight_layout()
     out = ROOT / "cad" / "preview_assembly.png"
