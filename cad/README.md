@@ -42,7 +42,7 @@ other is the safety part that contains it if it bursts.
 
 | File to upload | Material |
 |---|---|
-| `stl/step/v01/flywheel_rotor_v01.step` (**default rotor** — shelved under v01/ but still the one to machine) | 6061-T6 |
+| `stl/step/flywheel_rotor_v01.step` (**default rotor**) | 6061-T6 |
 | `stl/step/containment_cup_v01.step` | 6061-T6 |
 | `stl/step/flywheel_rotor_v02.step` — only if you want the heavy rotor | 6061-T6 |
 
@@ -80,8 +80,8 @@ fit-check before ordering the carbon fiber.
 
 ## Layout
 
-- `stl/` — STL meshes (print / reference); superseded frame/rotor v01 meshes shelved in `stl/v01/`
-- `stl/step/` — STEP solids (CNC quoting: rotor, cup, plates); v01 in `stl/step/v01/`
+- `stl/` — STL meshes (print / reference); superseded v01 frame plates shelved in `stl/v01/`
+- `stl/step/` — STEP solids (CNC quoting: rotor, cup, plates); superseded v01 plates in `stl/step/v01/`
 - `dxf/` — 2D cut profiles for CF plate CNC (SendCutSend / PCBWay)
 
 Masses verified with `tools/stl_check.py` (exact tetrahedron volume +
