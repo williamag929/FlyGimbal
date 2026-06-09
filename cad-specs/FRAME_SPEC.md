@@ -34,6 +34,13 @@ GyroDrone ring: ~5.3× more gyroscopic stability per kg
 | Motor position | 185 mm from center | On ring perimeter |
 | Frame weight target | ≤ 180 g | Carbon fiber 3mm |
 
+> **⚠ As-built v01 audit (2026-06-09):** measured from the STLs, the bottom
+> plate is ~255 g and the top ~201 g at CF density (1.6 g/cm³) — **2.5× over
+> target** (plates are only ~42% cut out). A lightening pass (spoke/lattice
+> cutouts) is required for v02, or the all-up mass rises to ~1.4 kg vs the
+> 1.2 kg assumed by `gyrodrone_sim.py` (MASS) and `momentum_manager.py`
+> (DRONE_MASS_KG) — re-run the simulation at actual mass before tuning.
+
 ---
 
 ## Layer Stack (top to bottom)

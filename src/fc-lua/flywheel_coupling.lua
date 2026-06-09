@@ -25,6 +25,8 @@ Parameters created (FWC_):
   FWC_RPM_MAX   flywheel RPM at full charge        (default 20000)
   FWC_SCL_MAX   gain multiplier at RPM_MAX         (default 1.25)
   FWC_RPM_WARN  GCS warning threshold              (default 19000)
+  FWC_INERTIA   rotor inertia kg*m^2               (default 1.16e-4, as-built v01)
+  FWC_ACT_NM    actuator output per N*m torque     (default 0.8, tune from logs)
 --]]
 
 local MAV_SEVERITY_WARNING = 4
@@ -36,16 +38,20 @@ local LOOP_MS              = 100
 -- ── Parameters ───────────────────────────────────────────────────────────────
 
 local PARAM_TABLE_KEY = 73
-assert(param:add_table(PARAM_TABLE_KEY, "FWC_", 4), "FWC: param table failed")
-assert(param:add_param(PARAM_TABLE_KEY, 1, "ENABLE",   2),     "FWC: param failed")
-assert(param:add_param(PARAM_TABLE_KEY, 2, "RPM_MAX",  20000), "FWC: param failed")
-assert(param:add_param(PARAM_TABLE_KEY, 3, "SCL_MAX",  1.25),  "FWC: param failed")
-assert(param:add_param(PARAM_TABLE_KEY, 4, "RPM_WARN", 19000), "FWC: param failed")
+assert(param:add_table(PARAM_TABLE_KEY, "FWC_", 6), "FWC: param table failed")
+assert(param:add_param(PARAM_TABLE_KEY, 1, "ENABLE",   2),       "FWC: param failed")
+assert(param:add_param(PARAM_TABLE_KEY, 2, "RPM_MAX",  20000),   "FWC: param failed")
+assert(param:add_param(PARAM_TABLE_KEY, 3, "SCL_MAX",  1.25),    "FWC: param failed")
+assert(param:add_param(PARAM_TABLE_KEY, 4, "RPM_WARN", 19000),   "FWC: param failed")
+assert(param:add_param(PARAM_TABLE_KEY, 5, "INERTIA",  0.000116),"FWC: param failed")
+assert(param:add_param(PARAM_TABLE_KEY, 6, "ACT_NM",   0.8),     "FWC: param failed")
 
 local FWC_ENABLE   = Parameter("FWC_ENABLE")
 local FWC_RPM_MAX  = Parameter("FWC_RPM_MAX")
 local FWC_SCL_MAX  = Parameter("FWC_SCL_MAX")
 local FWC_RPM_WARN = Parameter("FWC_RPM_WARN")
+local FWC_INERTIA  = Parameter("FWC_INERTIA")   -- rotor inertia kg*m^2
+local FWC_ACT_NM   = Parameter("FWC_ACT_NM")    -- actuator output per N*m torque
 
 -- rate-controller gains we schedule, with boot-time baselines
 local gains = {}
@@ -87,6 +93,7 @@ local cur_scale     = 1.0
 local warned_speed  = false
 local warned_stale  = false
 local have_telem    = false
+local ff_state      = "unknown"   -- "active" | "stock" | "unknown"
 
 local function apply_scale(scale)
   if scale == cur_scale then return end
@@ -94,6 +101,24 @@ local function apply_scale(scale)
     g.p:set(g.base * scale)                  -- runtime only, not saved
   end
   cur_scale = scale
+end
+
+-- True gyroscopic feed-forward via the FlyGimbal firmware patch
+-- (AC_AttitudeControl:set_flywheel_momentum). pcall: binding only exists
+-- on patched firmware; on stock builds we fall back to gain scheduling.
+local function push_momentum(rpm_now)
+  if ff_state == "stock" then return end
+  local h  = FWC_INERTIA:get() * rpm_now * 2.0 * math.pi / 60.0
+  local ok = pcall(function()
+    AC_AttitudeControl:set_flywheel_momentum(h, FWC_ACT_NM:get())
+  end)
+  if ok and ff_state ~= "active" then
+    ff_state = "active"
+    gcs:send_text(MAV_SEVERITY_INFO, "FWC: firmware feed-forward active")
+  elseif not ok and ff_state == "unknown" then
+    ff_state = "stock"
+    gcs:send_text(MAV_SEVERITY_INFO, "FWC: stock firmware, gain scheduling only")
+  end
 end
 
 -- ── Main loop ────────────────────────────────────────────────────────────────
@@ -118,6 +143,7 @@ local function update()
   local enable = FWC_ENABLE:get()
   if enable == 0 then
     apply_scale(1.0)
+    push_momentum(0)
     return update, LOOP_MS
   end
 
@@ -132,14 +158,21 @@ local function update()
     warned_speed = false
   end
 
-  -- stale telemetry failsafe: fall back to baseline gains
+  -- stale telemetry failsafe: fall back to baseline gains, zero the FF
   if stale then
     if not warned_stale then
       gcs:send_text(MAV_SEVERITY_WARNING, "FWC: flywheel RPM stale, gains reverted")
       warned_stale = true
     end
     apply_scale(1.0)
+    push_momentum(0)
     return update, LOOP_MS
+  end
+
+  -- true feed-forward (patched firmware) — fast term runs at 400Hz in the
+  -- rate loop; we only refresh the slowly-varying angular momentum here
+  if have_telem then
+    push_momentum(rpm)
   end
 
   -- gain scheduling

@@ -48,8 +48,8 @@ class FlywheelState:
         self.energy_j = 0.0
         self._sim     = True  # Switch to False when VESC is wired
 
-        # Flywheel rotor moment of inertia (from FLYWHEEL_SPEC.md)
-        self.I = 1.76e-4  # kg·m²
+        # Flywheel rotor moment of inertia (as-built v01, from FLYWHEEL_SPEC.md)
+        self.I = 1.16e-4  # kg·m²
 
         if not self._sim:
             try:

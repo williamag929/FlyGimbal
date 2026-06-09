@@ -85,6 +85,9 @@ def drain_statustext(mav, texts, duration=0.0):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--cmd", default="tcp:127.0.0.1:5760")
+    parser.add_argument("--stock", action="store_true",
+                        help="running stock firmware: expect gain-scheduling "
+                             "fallback instead of firmware feed-forward")
     args = parser.parse_args()
 
     check = Check()
@@ -143,6 +146,13 @@ def main():
                  f"ATC_RAT_RLL_P {baseline:.4f} -> {scaled:.4f} (expect {expect:.4f})")
     check.record("Telemetry-online message", any("telemetry online" in t for t in texts))
     check.record("Overspeed warning emitted", any("overspeed" in t for t in texts))
+
+    if args.stock:
+        check.record("Stock-firmware fallback announced",
+                     any("gain scheduling only" in t for t in texts))
+    else:
+        check.record("Firmware feed-forward active (patched build)",
+                     any("feed-forward active" in t for t in texts))
 
     # ── 5. Stale telemetry → gains revert ────────────────────────────────
     print("[test] stopping FWRPM stream, waiting for stale failsafe ...")

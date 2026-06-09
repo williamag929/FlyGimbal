@@ -58,10 +58,11 @@ The disc frame contributes gyroscopic stability even without the flywheel. The f
 KE = ½ × I × ω²
 ```
 
-At 20,000 RPM with the GyroDrone flywheel rotor (I ≈ 1.76 × 10⁻⁴ kg·m²):
+At 20,000 RPM with the as-built v01 rotor (I ≈ 1.16 × 10⁻⁴ kg·m², measured
+from flywheel_rotor_v01.stl):
 ```
 ω = 20,000 × 2π / 60 = 2,094 rad/s
-KE = ½ × 1.76e-4 × 2094² ≈ 386 J ≈ 0.107 Wh
+KE = ½ × 1.16e-4 × 2094² ≈ 254 J ≈ 0.071 Wh
 ```
 
 ### Energy Recovery Scenario
@@ -72,8 +73,9 @@ Gravitational PE lost = mgh = 1.2 kg × 9.8 × 10 = 117.6 J
 
 Without recovery: 117.6 J dissipated as heat in motor braking
 With FESS (70% efficiency): ~82 J → flywheel
-  → Flywheel RPM increase: Δω = √(2 × 82 / 1.76e-4) ≈ +965 rad/s
-  → RPM increase: +9,220 RPM from the descent alone
+  → From 15,000 RPM (ω = 1571 rad/s):
+    ω_new = √(ω² + 2×82/1.16e-4) = √(1571² + 1.414e6) ≈ 1970 rad/s
+  → RPM increase: +3,800 RPM from the descent alone
 ```
 
 On ascent, that stored energy is released back — reducing battery draw proportionally.

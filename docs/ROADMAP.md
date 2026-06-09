@@ -30,7 +30,7 @@
 | Cruise speed | 5.0 m/s (achieved) |
 | Altitude tracking error | ±0.5 m |
 | Flywheel RPM (nominal) | 15,000 RPM (67% charge) |
-| Regen energy recovered | ~17 J per circuit |
+| Regen energy recovered | ~16 J per circuit (as-built rotor I=1.16e-4) |
 | Turning radius (67% FW charge) | 5.9 m (vs 8.8 m empty) |
 | Max roll during arc turns | < 1° (gyroscopic stabilization active) |
 

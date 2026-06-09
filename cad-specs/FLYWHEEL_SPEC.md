@@ -8,11 +8,16 @@
 
 | Goal | Target |
 |---|---|
-| Stored energy at 20,000 RPM | ≥ 15 Wh equivalent recoverable |
-| Gyroscopic contribution | Measurable precession resistance |
+| Stored energy at 20,000 RPM | ~254 J (0.071 Wh); ~0.05 Wh recoverable at 72% VESC regen |
+| Gyroscopic contribution | Measurable precession resistance (L ≈ 0.24 N·m·s at 20k RPM) |
 | Mass | ≤ 120g (rotor + motor + bearing) |
 | Diameter | ≤ 80mm (fits 110mm bay with clearance) |
 | Height | ≤ 22mm total stack |
+
+> **Honest energy note:** the flywheel is NOT a net energy-recovery win — the
+> system's added mass costs more hover power than regen returns. Its real value
+> is gyroscopic stabilization and momentum-aware tight turns; regen is a
+> secondary experiment.
 
 ---
 
@@ -49,30 +54,34 @@ Cross-section view:
 | Material | Aluminum 6061-T6 |
 | Surface finish | Anodized (balance marking) |
 
-### Mass Estimate
+### Mass (as-built, measured from flywheel_rotor_v01.stl)
 ```
-Outer ring volume:  π × (40²-30²) × 15 = ~53,400 mm³  → ~144g
-Center web volume:  π × 15² × 4        = ~2,827 mm³   → ~7.6g
-Total estimated:    ~152g (pre-balance)
-Post-balance target: ≤ 145g
+STL solid volume:    43.7 cm³
+Mass (6061-T6, 2.70 g/cm³):  ~118 g  ✓ meets ≤120g goal
+Post-balance target: ≤ 118g (relief holes only remove material)
 ```
 
-### Moment of Inertia
+### Moment of Inertia (as-built v01 rotor)
 ```
-Ring approximation (outer rim dominant):
-I ≈ m_rim × r_avg²
-  ≈ 0.144 × 0.035²
-  ≈ 1.76 × 10⁻⁴ kg·m²
+Measured from flywheel_rotor_v01.stl solid geometry:
+I ≈ 1.16 × 10⁻⁴ kg·m²
 
 At 20,000 RPM (ω = 2094 rad/s):
-L = I × ω = 1.76e-4 × 2094 = 0.369 kg·m²/s
+L = I × ω = 1.16e-4 × 2094 = 0.243 N·m·s
 
 Stored KE = ½ × I × ω²
-          = ½ × 1.76e-4 × 2094²
-          = ~386 J ≈ 0.107 Wh
+          = ½ × 1.16e-4 × 2094²
+          = ~254 J ≈ 0.071 Wh
 
 Note: Real energy recovery efficiency via VESC ~70-80%
-Effective recoverable: ~0.075-0.085 Wh per charge cycle
+Effective recoverable: ~0.05 Wh per charge cycle
+
+This value (1.16e-4) is the single source of truth — used by
+gyrodrone_sim.py (FW_I), momentum_manager.py (FLYWHEEL_I),
+dubins_momentum.py, and the FWC_INERTIA Lua parameter default.
+A heavier v02 rotor (rim 15→18mm tall: ~145g, I≈1.76e-4, 386 J)
+remains an option if more gyroscopic authority is needed — update
+all four software constants together if built.
 ```
 
 ---
@@ -137,11 +146,13 @@ Standard radial bearings fail under gyroscopic axial loads.
 ```
 Required: Angular Contact Bearings
 
-Spec: 6000-2RS Angular Contact
+Spec: 7000C angular contact (NOT 6000-series — those are deep-groove
+      radial bearings despite similar dimensions; wrong part for this load)
   ID: 10mm (motor shaft)
   OD: 26mm
   Width: 8mm
-  Contact angle: 15° (handles combined radial + axial load)
+  Contact angle: 15° (C suffix — handles combined radial + axial load)
+  Speed rating: verify ≥ 24,000 RPM oil-lubricated (7000C typically ~28k)
 
 Quantity: 2× per flywheel (top + bottom of rotor)
 Preload: Light preload pair (face-to-face DB configuration)
@@ -172,8 +183,8 @@ Current limits:
   Battery min:    -10A (regen back to main pack)
 
 RPM limits:
-  Max ERPM:       22,000 × pole_pairs
-                  (RS2205 = 7 pole pairs → 154,000 ERPM)
+  Max ERPM:       20,000 × pole_pairs   (matches FLYWHEEL_RPM_MAX in software)
+                  (RS2205 = 7 pole pairs → 140,000 ERPM)
   Min ERPM:       1,000 (prevent stall detection issues)
 
 Control mode:     RPM control (PID speed loop)
@@ -206,6 +217,37 @@ Clearance:
 
 ---
 
+## Burst Containment (REQUIRED before first spin-up)
+
+The rotor stores ~254 J at 20,000 RPM with a rim speed of 84 m/s — comparable
+to a rifle round, centimeters from a LiPo. The PETG mount boss will NOT
+contain a liberated rim fragment. A dedicated containment part is mandatory.
+
+```
+Part: containment_ring_v01 (NOT YET MODELED — design before Phase 2)
+
+Geometry:
+  Ring lining the 110mm frame bay around the 80mm rotor
+  Inner diameter: 86 mm  (3mm radial clearance to rotor)
+  Wall thickness: 3 mm   (6061-T6) or 1.5 mm (mild steel)
+  Height:         20 mm  (covers full rotor + margin)
+  Top cover:      2 mm plate, bolted, with center hole for shaft
+
+Sizing rationale (fragment containment, not hoop stress):
+  Worst case: 1/3 rim fragment (~30g) at 84 m/s = ~105 J
+  3mm 6061 ring absorbs >300 J/cm² in plastic deformation at this
+  scale — adequate margin. Steel preferred if mass budget allows.
+
+Test protocol (spin pit):
+  1. First spin-up: rotor + containment in a sandbag-lined bucket,
+     outdoors, nobody in the plane of rotation, VESC tethered
+  2. Step RPM: 5k → 10k → 15k → 20k, 2 min dwell each
+  3. Listen/log for bearing resonance; abort on any vibration spike
+  4. Only after a clean 20k run does the assembly go on the airframe
+```
+
+---
+
 ## Fabrication Options
 
 ```
@@ -233,7 +275,8 @@ Recommended for prototype: PCBWay (cost) or local shop (speed)
 
 ## Files to Generate
 
-- [ ] `flywheel_rotor_v01.step` — STEP for CNC machining
-- [ ] `flywheel_rotor_v01.stl` — STL for reference/mockup
-- [ ] `flywheel_mount_boss_v01.stl` — Printed mount (PETG)
+- [x] `flywheel_rotor_v01.step` — STEP for CNC machining (in cad/stl/step/)
+- [x] `flywheel_rotor_v01.stl` — STL for reference/mockup (in cad/stl/)
+- [x] `flywheel_boss_v01.stl` — Printed mount (PETG) (in cad/stl/)
+- [ ] `containment_ring_v01.step` — burst containment (see section above) — **blocks Phase 2 spin-up**
 - [ ] `vesc_flywheel.xml` — VESC Tool configuration export
