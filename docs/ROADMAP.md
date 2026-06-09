@@ -55,7 +55,7 @@ python -m venv .venv
 1. **Gyroscopic feed-forward is mandatory.** Without canceling flywheel angular momentum coupling, pitch maneuvers induce ~10° spurious roll. The `tau_r += L_fw*q` term in the controller eliminates this.
 2. **Wrench allocation decouples throttle from attitude.** Mapping desired torques (Nm) directly to motor speeds prevents altitude throttle spikes from destabilizing attitude.
 3. **Turning radius compression is measurable.** At full flywheel charge (67%→100%): r_min drops from 8.8 m to 4.4 m — a 50% tighter arc at the same bank angle limit.
-4. **Regen is modest but real.** ~17 J per 20m×20m circuit ≈ 0.005 Wh. Meaningful at scale (multi-circuit survey missions, repeated descents).
+4. **Regen is modest but real.** ~16 J per 20m×20m circuit ≈ 0.0044 Wh. Meaningful at scale (multi-circuit survey missions, repeated descents).
 5. **Gimbal authority stays within ±5°** during normal cruise — well within the ±15° servo range. Full deflection reserved for aggressive attitude recovery.
 6. **Wind/noise robustness (added 2026-06-09):** stable through 8 m/s wind + 3 m/s gusts + sensor noise (`--wind 8 --gust 3 --noise`). Altitude holds ~0.3 m mean error under 5 m/s wind with baro-class altitude estimation. Modelling note: feeding GPS-class z-bias to the controller overstated altitude error 4× — no controller fixes an estimation bias, so the noise model uses baro-class z (the EKF reality). Position x/y keep GPS-class bias.
 
@@ -85,11 +85,15 @@ alt_Kd = 0.3
 **Goal:** Disc frame flies stably as a conventional quad. No flywheel yet.
 
 ### Week 1–2: CAD
-- [ ] Bottom plate design in Fusion 360 (from FRAME_SPEC.md)
-- [ ] Top plate design
-- [ ] Motor mount pad geometry validation
-- [ ] Export DXF → order from PCBWay or SendCutSend
-- [ ] Design flywheel rotor STEP file → order from PCBWay CNC
+- [x] Bottom plate design — v02 generated parametrically, 164 g (was 255 g);
+      `tools/generate_cad_v02.py` (2026-06-09)
+- [x] Top plate design — v02 R80 electronics tray, 56 g (was 201 g)
+- [x] Motor mount pad geometry validated (30×30 pads at R185, 16×16 M3)
+- [x] DXF cut profiles exported (`cad/dxf/`) — SendCutSend, CF .118″/.079″
+- [ ] Order plates (add fillets in Fusion first; see FRAME_SPEC v02 notes)
+- [x] Flywheel rotor STEP exists (`cad/stl/step/flywheel_rotor_v01.step`)
+- [ ] Order rotor from PCBWay CNC (6061-T6)
+- [ ] Update flywheel boss flange: bolt circle 55 → 62 mm (Fusion)
 - [ ] Print landing legs in TPU
 
 ### Week 3: Parts arrival + prep
@@ -129,10 +133,14 @@ alt_Kd = 0.3
 
 ### Week 7: Flywheel mechanical
 - [ ] Receive machined rotor from PCBWay
+- [x] Burst containment designed — `containment_cup_v01` (one-piece, 6061;
+      see FLYWHEEL_SPEC) — **machine it with the rotor order**
 - [ ] Balance rotor (static balance on mandrel)
 - [ ] Press-fit angular contact bearings
 - [ ] Install flywheel motor (RS2205) into rotor bore
 - [ ] Mount assembly on boss, torque retention bolts
+- [ ] Spin-pit test per FLYWHEEL_SPEC protocol (cup mandatory) before
+      the assembly goes anywhere near the airframe
 
 ### Week 8: VESC integration
 - [ ] Install VESC Tool on laptop

@@ -37,11 +37,18 @@ The goal: a drone that is **more efficient, quieter, and more stable** than conv
 ## Project Status
 
 - [x] Phase 0 — Concept & Architecture
-- [x] Phase 0.5 — Physics Simulation (complete)
-- [ ] Phase 1 — Frame CAD + Basic Flight (current)
-- [ ] Phase 2 — Flywheel Integration
+- [x] Phase 0.5 — Physics Simulation (incl. wind/gust/sensor-noise robustness)
+- [ ] Phase 1 — Frame CAD + Basic Flight (current: v02 CAD generated, parts ordering next)
+- [ ] Phase 2 — Flywheel Integration (containment cup modeled — machine before spin-up)
 - [ ] Phase 3 — Companion Computer + Pathfinding
 - [ ] Phase 4 — Full System Tuning & Benchmarking
+
+**Software validated ahead of hardware** (all against real ArduCopter SITL):
+- [x] Momentum manager ↔ ArduCopter integration — 7/7 checks ([SITL_TESTING.md](docs/SITL_TESTING.md))
+- [x] FC Lua applet: flywheel gain scheduling + failsafes — runs on stock firmware
+- [x] ArduPilot firmware patch: true gyroscopic feed-forward in the 400 Hz rate loop — 7/7 incl. live momentum injection ([src/firmware-patch/](src/firmware-patch/README.md))
+
+![prototype](cad/preview_assembly.png)
 
 ---
 
@@ -50,24 +57,31 @@ The goal: a drone that is **more efficient, quieter, and more stable** than conv
 ```
 FlyGimbal/
 ├── README.md
-├── .github/
-│   ├── workflows/ci.yml
-│   └── ISSUE_TEMPLATE/
+├── .github/                        # CI + issue templates
 ├── docs/
-│   ├── PHYSICS.md          # Theoretical foundation
-│   ├── BOM.md              # Full bill of materials
-│   ├── BUILD_GUIDE.md      # Step-by-step assembly
-│   ├── ROADMAP.md          # Development timeline
+│   ├── PHYSICS.md                  # Theoretical foundation
+│   ├── BOM.md                      # Full bill of materials
+│   ├── BUILD_GUIDE.md              # Step-by-step assembly
+│   ├── ROADMAP.md                  # Development timeline
+│   ├── SITL_TESTING.md             # SITL setup + validation results
 │   └── CONTRIBUTING.md
 ├── cad-specs/
-│   ├── FRAME_SPEC.md       # Fusion 360 design parameters
-│   ├── FLYWHEEL_SPEC.md    # Flywheel rotor dimensions
-│   └── GIMBAL_SPEC.md      # Motor gimbal mount spec
+│   ├── FRAME_SPEC.md               # Frame design parameters (v01 + v02)
+│   ├── FLYWHEEL_SPEC.md            # Rotor, bearings, burst containment
+│   └── GIMBAL_SPEC.md              # Thrust-vector motor gimbal spec
+├── cad/                            # Released geometry — see cad/README.md
+│   ├── stl/ stl/step/ dxf/         # meshes, CNC solids, plate cut profiles
+│   └── preview_assembly.png        # rendered prototype
+├── tools/
+│   ├── generate_cad_v02.py         # parametric part generator (CadQuery)
+│   ├── render_assembly.py          # prototype render from the STLs
+│   └── stl_check.py                # mass / inertia audit (exact integrals)
 └── src/
-    ├── pathfinding/
-    │   └── dubins_momentum.py      # MAVLink path planner
-    └── simulation/
-        └── gyrodrone_sim.py        # Full 6-DOF physics simulation
+    ├── simulation/gyrodrone_sim.py        # 6-DOF physics sim (+wind/noise)
+    ├── pathfinding/dubins_momentum.py     # momentum-aware Dubins planner
+    ├── momentum-manager/                  # companion-computer daemon + SITL test
+    ├── fc-lua/flywheel_coupling.lua       # FC applet: gain sched + FF bridge
+    └── firmware-patch/                    # ArduPilot gyroscopic feed-forward
 ```
 
 ---
