@@ -13,6 +13,7 @@ Endpoints:
 from __future__ import annotations
 
 import logging
+import os
 import time
 from contextlib import asynccontextmanager
 
@@ -25,7 +26,13 @@ from football.model.poisson import FootballPoissonModel, MatchRecord
 from football.narrator import generate_narrative
 from football.data.elo_table import ELO_RATINGS
 
+logging.basicConfig(
+    level=os.getenv("LOG_LEVEL", "WARNING").upper(),
+    format="%(levelname)s %(name)s: %(message)s",
+)
 log = logging.getLogger(__name__)
+
+_cors_origins = [o.strip() for o in os.getenv("API_CORS_ORIGINS", "*").split(",")]
 
 _fetcher = MatchFetcher()
 _model   = FootballPoissonModel()
@@ -50,7 +57,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )

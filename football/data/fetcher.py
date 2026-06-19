@@ -42,10 +42,10 @@ class MatchRecord:
 
 
 class MatchFetcher:
-    def __init__(self, cache_dir: str = ".football_cache"):
+    def __init__(self, cache_dir: str | None = None):
         self._fd_key = os.getenv("FOOTBALL_DATA_KEY", "")
         self._af_key = os.getenv("API_FOOTBALL_KEY", "")
-        self._cache = Path(cache_dir)
+        self._cache = Path(cache_dir or os.getenv("FOOTBALL_CACHE_DIR", ".football_cache"))
         self._cache.mkdir(exist_ok=True)
 
     # ------------------------------------------------------------------
