@@ -1,8 +1,5 @@
-# GyroDrone — Python Dependencies
+# FlyGimbal — Python Dependencies
 # Install: pip install -r requirements.txt
-
-# Path planning
-dubins==1.0.1
 
 # MAVLink / ArduPilot communication
 pymavlink==2.4.41
@@ -13,8 +10,8 @@ numpy>=1.24.0
 # VESC UART communication (Phase 2)
 pyserial>=3.5
 
-# Optional: simulation / visualization
-matplotlib>=3.7.0      # Plot Dubins paths for debugging
+# Optional: simulation dashboard plots (the sim runs headless without it)
+matplotlib>=3.7.0
 
 # Optional: companion computer telemetry logging
 pandas>=2.0.0          # Log flight data to CSV
@@ -22,3 +19,7 @@ pandas>=2.0.0          # Log flight data to CSV
 # Dev / testing only
 pytest>=7.4.0
 pytest-cov>=4.1.0
+
+# Not pinned on purpose: the `dubins` C library (1.0.1) no longer builds on
+# current Python. dubins_momentum.py uses it when present and otherwise falls
+# back to the pure-Python sampler in src/simulation/gyrodrone_sim.py.

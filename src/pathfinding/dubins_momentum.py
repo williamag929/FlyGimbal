@@ -1,5 +1,5 @@
 """
-GyroDrone — Momentum-Aware Dubins Path Planner
+FlyGimbal — Momentum-Aware Dubins Path Planner
 src/pathfinding/dubins_momentum.py
 
 Extends standard Dubins path with flywheel state constraints.
@@ -13,16 +13,28 @@ Usage:
 """
 
 import math
+import os
+import sys
 import time
 import argparse
 import numpy as np
 
+# The `dubins` C library is optional: its last release (1.0.1) no longer
+# builds on current Python. Without it the planner uses the pure-Python
+# sampler from the simulation, which is the one validated in SITL.
 try:
     import dubins
+    dubins_sample = None
+except ImportError:
+    dubins = None
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                    "..", "simulation"))
+    from gyrodrone_sim import dubins_sample
+
+try:
     from pymavlink import mavutil
 except ImportError:
-    print("Install: pip install dubins pymavlink numpy")
-    raise
+    mavutil = None  # only needed to fly; --sim works without it
 
 
 # ─── Constants ────────────────────────────────────────────────────────────────
@@ -140,12 +152,17 @@ class MomentumDubinsPlanner:
         self.flywheel.update()
         radius = self.effective_turn_radius(speed_ms)
 
-        path = dubins.shortest_path(start, end, radius)
-        configurations, _ = path.sample_many(step_size=0.5)
+        if dubins is not None:
+            path = dubins.shortest_path(start, end, radius)
+            configurations, _ = path.sample_many(step_size=0.5)
+            detail = (f"path_type={path.path_type()} "
+                      f"| length={path.path_length():.1f}m")
+        else:
+            configurations = dubins_sample(start, end, radius, step=0.5)
+            detail = f"points={len(configurations)} (built-in sampler)"
 
         print(
-            f"[Planner] r={radius:.2f}m | flywheel={self.flywheel} "
-            f"| path_type={path.path_type()} | length={path.path_length():.1f}m"
+            f"[Planner] r={radius:.2f}m | flywheel={self.flywheel} | {detail}"
         )
 
         return configurations
@@ -183,6 +200,8 @@ class ArduPilotInterface:
     """
 
     def __init__(self, connection_string: str, baud: int = 115200):
+        if mavutil is None:
+            raise RuntimeError("pymavlink is required to fly: pip install pymavlink")
         print(f"[MAVLink] Connecting to {connection_string} @ {baud}...")
         self.mav = mavutil.mavlink_connection(connection_string, baud=baud)
         self.mav.wait_heartbeat()
@@ -220,7 +239,7 @@ class ArduPilotInterface:
 # ─── Entry Point ─────────────────────────────────────────────────────────────
 
 def main():
-    parser = argparse.ArgumentParser(description="GyroDrone Momentum Path Planner")
+    parser = argparse.ArgumentParser(description="FlyGimbal Momentum Path Planner")
     parser.add_argument("--connect", default="udp:127.0.0.1:14550", help="MAVLink connection string")
     parser.add_argument("--baud",    default=115200, type=int)
     parser.add_argument("--sim",     action="store_true", help="Run in simulation mode (no hardware)")

@@ -1,4 +1,18 @@
-# Development Roadmap — GyroDrone
+# Development Roadmap — FlyGimbal
+
+_Last updated: 2026-09-24._ Week numbers count from the Phase 1 parts order,
+which has not been placed yet. See [STRUCTURE.md](STRUCTURE.md) for where each
+file lives.
+
+## Where We Are
+
+| Area | State |
+|---|---|
+| Simulation | Complete, with wind, gust and sensor-noise robustness |
+| Software vs ArduCopter SITL | Complete: momentum manager, Lua script, firmware patch, flight demo |
+| CAD | v02 generated. Fillets and the flywheel boss flange update are pending |
+| Hardware | Not started. Next step is ordering plates, rotor and containment cup |
+| Automated tests | Pytest suite and CI in place (2026-09-24) |
 
 ---
 
@@ -38,16 +52,25 @@
 
 ```bash
 python -m venv .venv
-.venv/Scripts/pip install numpy matplotlib
+.venv/Scripts/pip install -r requirements.txt
 
-# Default circuit
+# Default circuit (5 waypoints, 20 m x 20 m)
 .venv/Scripts/python src/simulation/gyrodrone_sim.py
 
-# Other profiles
+# Other profiles: circuit | square | figure8 | lawnmower
 .venv/Scripts/python src/simulation/gyrodrone_sim.py --mission figure8
-.venv/Scripts/python src/simulation/gyrodrone_sim.py --mission lawnmower
 .venv/Scripts/python src/simulation/gyrodrone_sim.py --no-regen   # FESS disabled comparison
 .venv/Scripts/python src/simulation/gyrodrone_sim.py --dt 0.005   # high-fidelity
+
+# Robustness: steady wind (m/s), wind direction (deg), gust sigma, sensor noise
+.venv/Scripts/python src/simulation/gyrodrone_sim.py --wind 8 --wind-dir 90 --gust 3 --noise --seed 42
+
+# Other options
+.venv/Scripts/python src/simulation/gyrodrone_sim.py --speed 6 --altitude 15
+.venv/Scripts/python src/simulation/gyrodrone_sim.py --no-plot    # console only, no PNG
+
+# Automated checks (sampler, planner, circuit, windy circuit)
+.venv/Scripts/python -m pytest tests/ -v
 ```
 
 ### Key Findings
@@ -80,6 +103,25 @@ alt_Kd = 0.3
 
 ---
 
+## Phase 0.75 — Software-in-the-Loop Validation (Complete)
+
+**Goal:** Prove every piece of flight software against real ArduCopter before
+any hardware exists. Setup and procedures: [SITL_TESTING.md](SITL_TESTING.md).
+
+| Test | Result | Date |
+|---|---|---|
+| Momentum manager vs ArduCopter SITL (`src/momentum-manager/sitl_test.py`) | 7/7 PASS. Dubins circuit tracked, REGEN/DISCHARGE triggered, telemetry staleness 96 ms | 2026-06-09 |
+| Lua script on stock firmware (`src/fc-lua/sitl_lua_test.py`) | 6/6 PASS. Gains scaled at 20k RPM, overspeed and stale-telemetry failsafes | 2026-06-09 |
+| Lua script + firmware feed-forward patch (same test, patched SITL) | 7/7 PASS. `FWC: firmware feed-forward active` | 2026-06-09 |
+| SITL flight demo (`tools/sitl_fly_demo.py`, checked with `tools/read_last_flight.py`) | Arm, take off, hover, land | 2026-06-10 |
+| Pytest suite in CI (`tests/`) | 10 tests: sampler, planner, circuit, windy circuit | 2026-09-24 |
+
+**Known gaps** that SITL cannot close:
+- The VESC is still simulated (`VESCInterface(sim=True)`). Regen numbers are estimates.
+- `FWC_ACT_NM` is a placeholder (0.8) until measured on the real airframe.
+
+---
+
 ## Phase 1 — Mechanical + Basic Flight (Weeks 1–6)
 
 **Goal:** Disc frame flies stably as a conventional quad. No flywheel yet.
@@ -92,7 +134,9 @@ alt_Kd = 0.3
 - [x] DXF cut profiles exported (`cad/dxf/`) — SendCutSend, CF .118″/.079″
 - [ ] Order plates (add fillets in Fusion first; see FRAME_SPEC v02 notes)
 - [x] Flywheel rotor STEP exists (`cad/stl/step/flywheel_rotor_v01.step`)
-- [ ] Order rotor from PCBWay CNC (6061-T6)
+- [ ] Decide rotor: v01 default (I = 1.24e-4) or v02 heavy (I = 1.78e-4).
+      v02 means updating the inertia constants listed in STRUCTURE.md
+- [ ] Order rotor **and containment cup** from PCBWay CNC (6061-T6), one order
 - [ ] Update flywheel boss flange: bolt circle 55 → 62 mm (Fusion)
 - [ ] Print landing legs in TPU
 
@@ -118,6 +162,7 @@ alt_Kd = 0.3
 - [ ] Verify no vibration resonance at hover throttle
 
 ### Week 6: First flight
+- [x] Rehearse arm, takeoff, hover, land in SITL (`tools/sitl_fly_demo.py`, 2026-06-10)
 - [ ] Hover test in open area (low altitude, tethered)
 - [ ] Validate disc frame CoG in flight
 - [ ] Log IMU data — compare vibration profile vs conventional quad
@@ -132,9 +177,9 @@ alt_Kd = 0.3
 **Goal:** Flywheel spinning and measurable energy recovery on descent.
 
 ### Week 7: Flywheel mechanical
-- [ ] Receive machined rotor from PCBWay
+- [ ] Receive machined rotor and containment cup from PCBWay
 - [x] Burst containment designed — `containment_cup_v01` (one-piece, 6061;
-      see FLYWHEEL_SPEC) — **machine it with the rotor order**
+      see FLYWHEEL_SPEC) — ordered with the rotor in Phase 1
 - [ ] Balance rotor (static balance on mandrel)
 - [ ] Press-fit angular contact bearings
 - [ ] Install flywheel motor (RS2205) into rotor bore
@@ -148,6 +193,8 @@ alt_Kd = 0.3
 - [ ] Configure RPM control mode (target 18,000 RPM initially)
 - [ ] Configure regenerative braking limits
 - [ ] Bench test: spin up, brake, measure energy returned to bench supply
+- [ ] Replace the simulated `VESCInterface` in `momentum_manager.py` with the
+      real UART driver, and re-run the SITL test with live VESC data
 
 ### Week 9: Gimbal servos
 - [ ] Print gimbal brackets (PETG)
@@ -173,7 +220,8 @@ alt_Kd = 0.3
 - [ ] Flash Armbian on Orange Pi Zero 3
 - [ ] Install MAVProxy + pymavlink
 - [ ] Establish UART link to H743 (SERIAL2)
-- [ ] Verify telemetry stream in Python
+- [ ] Verify telemetry stream in Python on hardware
+      (already proven over TCP against SITL; only the UART link is new)
 
 ### Week 12: Dubins path implementation
 - [x] Implement Dubins path library (inline LSL/RSR/LSR/RSL — no external dep)
@@ -204,6 +252,9 @@ alt_Kd = 0.3
 
 - [x] Firmware gyroscopic feed-forward (AC_AttitudeControl patch + Lua binding,
       validated in patched SITL 2026-06-09 — see src/firmware-patch/)
+- [ ] Tune `FWC_ACT_NM` on the real airframe: start at 0.8, compare commanded
+      vs achieved rates during flywheel spin-up. Keep `FWC_ENABLE=2` until then
+- [ ] Flash the patched firmware to the H743 (currently SITL only)
 - [ ] PID retuning with flywheel active (gyroscopic coupling compensation)
 - [ ] VESC regen profile optimization per mission type
 - [ ] Pathfinding extension: 3D arc paths (altitude changes)
@@ -211,13 +262,23 @@ alt_Kd = 0.3
 - [ ] Endurance benchmark: timed hover comparison vs equivalent X-quad
 - [ ] Consider: paper / technical writeup submission
 
+### Repository health
+- [x] Pytest suite (`tests/`) run in CI, plus headless sim run (2026-09-24)
+- [x] Planner no longer needs the unbuildable `dubins` C library (2026-09-24)
+- [x] MIT LICENSE file added (2026-09-24)
+- [x] Unrelated football model moved to its own repository (2026-09-24)
+- [ ] Turn the SITL scripts into an opt-in pytest job (needs SITL in CI)
+- [ ] Add Lua script unit tests that run without SITL
+
 ---
 
 ## Milestone Summary
 
-| Milestone | Target Week | Validation |
-|---|---|---|
-| Frame flying stable | 6 | 5min hover, clean logs |
-| Flywheel measurable recovery | 10 | VESC energy log on descent |
-| Arc pathfinding operational | 14 | Circuit mission vs waypoint |
-| Efficiency benchmark | 16 | vs baseline X-quad same motors |
+| Milestone | Target Week | Validation | Status (2026-09-24) |
+|---|---|---|---|
+| Simulation validated | — | Circuit, figure-8, lawnmower, wind + noise | Done 2026-06-09 |
+| Flight software validated in SITL | — | 7/7, 6/6, 7/7 test runs + flight demo | Done 2026-06-10 |
+| Frame flying stable | 6 | 5min hover, clean logs | Waiting on parts order |
+| Flywheel measurable recovery | 10 | VESC energy log on descent | Not started |
+| Arc pathfinding operational | 14 | Circuit mission vs waypoint | Proven in SITL, hardware pending |
+| Efficiency benchmark | 16 | vs baseline X-quad same motors | Not started |

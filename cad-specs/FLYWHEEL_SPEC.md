@@ -1,4 +1,4 @@
-# Flywheel (FESS) Specification — GyroDrone v0.1
+# Flywheel (FESS) Specification — FlyGimbal v0.1
 
 > Kinetic energy storage and gyroscopic stabilization subsystem.
 

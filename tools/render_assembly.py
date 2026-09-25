@@ -1,4 +1,4 @@
-"""Render the GyroDrone v02 prototype assembly from the released STLs.
+"""Render the FlyGimbal v02 prototype assembly from the released STLs.
 
 Painter's-algorithm shaded render (no extra deps beyond numpy/matplotlib).
 Motors, props, and standoffs are simple generated cylinders for context —
@@ -158,7 +158,7 @@ def render(ax, parts, view=(1.0, 1.0, 0.55), title=""):
 
 if __name__ == "__main__":
     fig, axes = plt.subplots(1, 2, figsize=(17, 9))
-    render(axes[0], assembly(0.0), title="GyroDrone v02 — assembled prototype")
+    render(axes[0], assembly(0.0), title="FlyGimbal v02 — assembled prototype")
     render(axes[1], assembly(30.0), title="exploded view")
     fig.text(0.5, 0.03,
              "CF plates (dark) · 6061 containment cup + rotor (silver/orange) · "

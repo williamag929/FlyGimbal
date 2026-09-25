@@ -1,4 +1,4 @@
-# CAD Geometry — GyroDrone
+# CAD Geometry — FlyGimbal
 
 Released geometry. Specs live in [cad-specs/](../cad-specs/); v02 parts are
 generated parametrically by [tools/generate_cad_v02.py](../tools/generate_cad_v02.py)

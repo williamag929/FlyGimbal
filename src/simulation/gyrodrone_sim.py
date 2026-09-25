@@ -1,8 +1,8 @@
 """
-GyroDrone -- Full Physics Simulation
+FlyGimbal -- Full Physics Simulation
 src/simulation/gyrodrone_sim.py
 
-Simulates the complete GyroDrone system:
+Simulates the complete FlyGimbal system:
   - Flywheel FESS (kinetic energy storage + gyroscopic stabilization)
   - Thrust-vectoring gimbal (2 of 4 motors on Savox SH-0257MG servos)
   - Disc-frame 6-DOF rigid body dynamics (proper cascade controller)
@@ -24,8 +24,6 @@ Usage:
 import math
 import argparse
 import numpy as np
-import matplotlib.pyplot as plt
-from matplotlib.gridspec import GridSpec
 from dataclasses import dataclass
 from typing import List, Tuple
 
@@ -347,7 +345,7 @@ class SensorNoise:
 
 class Dynamics:
     """
-    6-DOF rigid-body integration for the GyroDrone disc-frame.
+    6-DOF rigid-body integration for the FlyGimbal disc-frame.
 
     Control cascade:
         position error --> desired roll/pitch (attitude setpoint)
@@ -670,7 +668,7 @@ class Tel:
 
 
 class Mission:
-    """Plans and simulates a full GyroDrone mission."""
+    """Plans and simulates a full FlyGimbal mission."""
 
     def __init__(
         self,
@@ -719,7 +717,7 @@ class Mission:
     def run(self) -> None:
         regen_str = "enabled" if self.drone.fw.regen else "disabled"
         print(f"\n{'='*58}", flush=True)
-        print(f"GyroDrone Mission Simulation", flush=True)
+        print(f"FlyGimbal Mission Simulation", flush=True)
         print(f"  Waypoints   : {len(self.wps)}", flush=True)
         print(f"  Altitude    : {self.alt} m", flush=True)
         print(f"  Speed       : {self.speed} m/s", flush=True)
@@ -796,6 +794,10 @@ class Mission:
 # ==============================================================================
 
 def plot(sim: Mission) -> None:
+    # Imported here so the sim (and dubins_sample) work without matplotlib.
+    import matplotlib.pyplot as plt
+    from matplotlib.gridspec import GridSpec
+
     tel = sim.tel
     if not tel:
         print("No telemetry to plot.", flush=True)
@@ -819,7 +821,7 @@ def plot(sim: Mission) -> None:
     spd      = arr(lambda r: math.sqrt(r.vx**2 + r.vy**2))
 
     fig = plt.figure(figsize=(18, 12))
-    fig.suptitle("GyroDrone -- Full Physics Simulation", fontsize=14, fontweight="bold")
+    fig.suptitle("FlyGimbal -- Full Physics Simulation", fontsize=14, fontweight="bold")
     gs  = GridSpec(3, 3, figure=fig, hspace=0.48, wspace=0.38)
 
     # -- Trajectory (top-down) --
@@ -947,7 +949,7 @@ MISSIONS = {
 # ==============================================================================
 
 def main():
-    parser = argparse.ArgumentParser(description="GyroDrone Physics Simulation")
+    parser = argparse.ArgumentParser(description="FlyGimbal Physics Simulation")
     parser.add_argument("--mission",  default="circuit", choices=list(MISSIONS))
     parser.add_argument("--altitude", default=10.0, type=float)
     parser.add_argument("--speed",    default=5.0,  type=float)

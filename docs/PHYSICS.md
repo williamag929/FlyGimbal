@@ -1,4 +1,4 @@
-# Physics Foundation — GyroDrone
+# Physics Foundation — FlyGimbal
 
 > Theoretical basis for the three core design decisions.
 
@@ -33,7 +33,7 @@ For the same mass distributed as a solid disc:
 I_disc = ½ × m × r²
 ```
 
-A ring has **2× the moment of inertia** of a solid disc of equal mass. GyroDrone's perimeter-heavy frame approximates a ring, maximizing I per kilogram.
+A ring has **2× the moment of inertia** of a solid disc of equal mass. FlyGimbal's perimeter-heavy frame approximates a ring, maximizing I per kilogram.
 
 ### Precession vs. Tumbling
 
@@ -127,7 +127,7 @@ The drone never makes sharp corners — it always follows the minimum-radius arc
 
 ### Momentum Constraint Extension
 
-Standard Dubins assumes constant speed. GyroDrone's planner adds:
+Standard Dubins assumes constant speed. FlyGimbal's planner adds:
 
 ```
 Constraint: curvature_max = f(v_current, flywheel_state)
@@ -147,7 +147,7 @@ This creates a **coupled energy-path planning system** — the flight path is dy
 
 Compared to an equivalent conventional X-quad (same motors, same battery):
 
-| Factor | Conventional | GyroDrone | Delta |
+| Factor | Conventional | FlyGimbal | Delta |
 |---|---|---|---|
 | Stabilization power | ~8% of total | ~3% (physics assists) | -5% |
 | Waypoint energy waste | ~12% | ~2% (arc paths) | -10% |

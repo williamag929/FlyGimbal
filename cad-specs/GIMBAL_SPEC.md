@@ -1,4 +1,4 @@
-# Gimbal Mount Specification — GyroDrone v0.1
+# Gimbal Mount Specification — FlyGimbal v0.1
 
 > Thrust vectoring via servo-driven motor gimbal on 2 of 4 arms.
 

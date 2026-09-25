@@ -1,4 +1,4 @@
-"""GyroDrone v02 CAD generator (CadQuery).
+"""FlyGimbal v02 CAD generator (CadQuery).
 
 Generates the v02 lightening-pass frame plates, the burst-containment cup
 (blocks Phase 2 spin-up), and the optional heavy rotor. Dimensions live here
@@ -212,7 +212,7 @@ def export(name, solid, material, dxf=False):
 
 
 if __name__ == "__main__":
-    print("GyroDrone v02 CAD generation:")
+    print("FlyGimbal v02 CAD generation:")
     m_bot = export("frame_bottom_v02", frame_bottom(), "cf", dxf=True)
     m_top = export("frame_top_v02", frame_top(), "cf", dxf=True)
     m_cup = export("containment_cup_v01", containment_cup(), "al6061")

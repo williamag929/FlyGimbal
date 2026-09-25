@@ -1,4 +1,4 @@
-# Frame CAD Specification — GyroDrone Disc Frame v0.1
+# Frame CAD Specification — FlyGimbal Disc Frame v0.1
 
 > Fusion 360 design parameters for the primary airframe.
 > All dimensions in millimeters unless noted.
@@ -18,7 +18,7 @@ I ≈ 0.4 × 0.185² = 0.01369 kg·m²
 vs. equivalent mass quad at r=80mm:
 I ≈ 0.4 × 0.080² = 0.00256 kg·m²
 
-GyroDrone ring: ~5.3× more gyroscopic stability per kg
+FlyGimbal ring: ~5.3× more gyroscopic stability per kg
 ```
 
 ---

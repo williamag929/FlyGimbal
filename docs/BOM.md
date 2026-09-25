@@ -1,4 +1,4 @@
-# Bill of Materials — GyroDrone v0.1
+# Bill of Materials — FlyGimbal v0.1
 
 > All prices in USD. Sourced May 2025. Prices subject to change.
 

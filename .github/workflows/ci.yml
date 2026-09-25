@@ -8,7 +8,7 @@ on:
 
 jobs:
   validate-python:
-    name: Python — Validate Path Planner
+    name: Python — Simulation, planner, tests
     runs-on: ubuntu-latest
 
     steps:
@@ -19,14 +19,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-
-      - name: Cache pip dependencies
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
+          cache: pip
 
       - name: Install dependencies
         run: pip install -r requirements.txt
@@ -34,31 +27,38 @@ jobs:
       - name: Run path planner (simulation mode)
         run: python src/pathfinding/dubins_momentum.py --sim
 
-      - name: Run tests (if present)
-        run: |
-          if [ -d "tests" ]; then
-            pytest tests/ -v --tb=short
-          else
-            echo "No tests directory yet — skipping"
-          fi
+      - name: Run physics simulation (headless)
+        run: python src/simulation/gyrodrone_sim.py --no-plot --mission circuit
+
+      - name: Run tests
+        run: pytest tests/ -v --tb=short
 
   validate-docs:
-    name: Docs — Check Markdown links
+    name: Docs — Check required files
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Check for broken internal links
+      - name: Check that key docs exist
         run: |
-          echo "Checking that key docs exist..."
-          test -f README.md           && echo "✓ README.md"
-          test -f docs/BOM.md         && echo "✓ docs/BOM.md"
-          test -f docs/PHYSICS.md     && echo "✓ docs/PHYSICS.md"
-          test -f docs/ROADMAP.md     && echo "✓ docs/ROADMAP.md"
-          test -f docs/BUILD_GUIDE.md && echo "✓ docs/BUILD_GUIDE.md"
-          test -f cad-specs/FRAME_SPEC.md    && echo "✓ cad-specs/FRAME_SPEC.md"
-          test -f cad-specs/FLYWHEEL_SPEC.md && echo "✓ cad-specs/FLYWHEEL_SPEC.md"
-          test -f cad-specs/GIMBAL_SPEC.md   && echo "✓ cad-specs/GIMBAL_SPEC.md"
-          echo "All required docs present."
+          set -e
+          for f in README.md LICENSE \
+                   docs/BOM.md docs/PHYSICS.md docs/ROADMAP.md docs/STRUCTURE.md \
+                   docs/BUILD_GUIDE.md docs/SITL_TESTING.md docs/CONTRIBUTING.md \
+                   cad/README.md src/firmware-patch/README.md \
+                   cad-specs/FRAME_SPEC.md cad-specs/FLYWHEEL_SPEC.md cad-specs/GIMBAL_SPEC.md; do
+            test -f "$f" || { echo "✗ missing $f"; exit 1; }
+            echo "✓ $f"
+          done
+
+      - name: Check docs are UTF-8 (not UTF-16)
+        run: |
+          set -e
+          for f in $(git ls-files '*.md'); do
+            if ! iconv -f UTF-8 -t UTF-8 "$f" > /dev/null 2>&1; then
+              echo "✗ $f is not UTF-8"; exit 1
+            fi
+          done
+          echo "All Markdown files are UTF-8."

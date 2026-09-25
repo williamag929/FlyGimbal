@@ -1,4 +1,4 @@
-# Build Guide — GyroDrone Phase 1
+# Build Guide — FlyGimbal Phase 1
 
 > Step-by-step assembly for the disc frame + basic flight.
 > Assumes engineer-level electronics experience.
